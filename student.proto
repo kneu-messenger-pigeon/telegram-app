@@ -1,0 +1,21 @@
+syntax="proto3";
+
+package main;
+
+option go_package="./;main";
+
+message Student {
+  string name = 1;
+  int32 age = 2;
+  uint32 Id = 3;
+  string LastName = 4;
+  string FirstName = 5;
+  string MiddleName = 6;
+
+  enum GenderType {
+    UNKNOWN = 0;
+    MALE = 1;
+    FEMALE = 2;
+  }
+  GenderType  Gender = 7;
+}

@@ -1,0 +1,15 @@
+{{.NamePrefix}} {{.Name}}, Ваша загальна успішність у навчанні:
+
+{{range $index, $d := .Disciplines}}
+{{incr $index}}. {{$d.Discipline.Name}}
+     <b>результат {{$d.ScoreRating.Total}}</b>, <i>рейтинг #{{$d.ScoreRating.Rating}}/{{$d.ScoreRating.StudentsCount}}</i>
+{{else}}
+Навчальних дисциплін ще не зареєстровано
+{{end}}
+
+Вимкнути бот - /reset
+
+❗Увага❗
+Перевіряйте оцінки в <a href="https://kneu.edu.ua/ua/Information_for/students/jurnal/">офіційному журналі успішності КНЕУ</a>
+Цей Бот не є офіційним джерелом даних про успішність.
+
