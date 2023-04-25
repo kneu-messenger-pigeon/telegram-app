@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"github.com/kneu-messenger-pigeon/events"
+	"io"
 )
 
 type UserAuthorizedEventHandler struct {
-	repository UserRepositoryInterface
-	clientName string
-	eventQueue chan *events.UserAuthorizedEvent
+	clientName       string
+	repository       UserRepositoryInterface
+	out              io.Writer
+	serviceContainer *ServiceContainer
 }
 
 func (handler *UserAuthorizedEventHandler) GetExpectedMessageKey() string {
@@ -32,18 +35,18 @@ func (handler *UserAuthorizedEventHandler) Handle(s any) (err error) {
 			MiddleName: event.MiddleName,
 			Gender:     Student_GenderType(event.Gender),
 		})
-		if handler.eventQueue != nil {
-			handler.eventQueue <- event
+
+		if err == nil && handler.serviceContainer != nil && handler.serviceContainer.ClientController != nil {
+			go handler.callControllerAction(event)
 		}
 	}
 
 	return err
 }
 
-func (handler *UserAuthorizedEventHandler) GetEventQueue() <-chan *events.UserAuthorizedEvent {
-	if handler.eventQueue == nil {
-		handler.eventQueue = make(chan *events.UserAuthorizedEvent)
+func (handler *UserAuthorizedEventHandler) callControllerAction(event *events.UserAuthorizedEvent) {
+	err := handler.serviceContainer.ClientController.UserAuthorizedAction(event)
+	if err != nil {
+		_, _ = fmt.Fprintf(handler.out, "UserAuthorizedAction return error: %v", err)
 	}
-
-	return handler.eventQueue
 }

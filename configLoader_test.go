@@ -6,20 +6,13 @@ import (
 	"os"
 	"strconv"
 	"testing"
-	"time"
 )
 
 var expectedConfig = Config{
-	appSecret:           "test_Secret_test123",
-	kafkaHost:           "KAFKA:9999",
-	redisDsn:            "REDIS:6379",
-	kafkaTimeout:        time.Second * 10,
-	kafkaAttempts:       0,
-	scoreStorageApiHost: "http://localhost:8080",
-	authorizerHost:      "http://localhost:8082",
-	telegramToken:       "telegram-token",
-	telegramOffline:     true,
-	telegramURL:         "https://api.telegram.org",
+	BaseConfig:      expectedBaseConfig,
+	telegramToken:   "telegram-token",
+	telegramOffline: true,
+	telegramURL:     "https://api.telegram.org",
 }
 
 func TestLoadConfigFromEnvVars(t *testing.T) {
@@ -29,7 +22,7 @@ func TestLoadConfigFromEnvVars(t *testing.T) {
 		_ = os.Setenv("APP_SECRET", expectedConfig.appSecret)
 		_ = os.Setenv("KAFKA_HOST", expectedConfig.kafkaHost)
 		_ = os.Setenv("KAFKA_TIMEOUT", strconv.Itoa(int(expectedConfig.kafkaTimeout.Seconds())))
-		_ = os.Setenv("REDIS_DSN", expectedConfig.redisDsn)
+		_ = os.Setenv("REDIS_DSN", BuildRedisDsn(expectedConfig.redisOptions))
 		_ = os.Setenv("SCORE_STORAGE_API_HOST", expectedConfig.scoreStorageApiHost)
 		_ = os.Setenv("AUTHORIZER_HOST", expectedConfig.authorizerHost)
 		_ = os.Setenv("TELEGRAM_TOKEN", expectedConfig.telegramToken)
@@ -60,7 +53,7 @@ func TestLoadConfigFromEnvVars(t *testing.T) {
 
 		envFileContent += fmt.Sprintf("APP_SECRET=%s\n", expectedConfig.appSecret)
 		envFileContent += fmt.Sprintf("KAFKA_HOST=%s\n", expectedConfig.kafkaHost)
-		envFileContent += fmt.Sprintf("REDIS_DSN=%s\n", expectedConfig.redisDsn)
+		envFileContent += fmt.Sprintf("REDIS_DSN=%s\n", BuildRedisDsn(expectedConfig.redisOptions))
 		envFileContent += fmt.Sprintf("SCORE_STORAGE_API_HOST=%s\n", expectedConfig.scoreStorageApiHost)
 		envFileContent += fmt.Sprintf("AUTHORIZER_HOST=%s\n", expectedConfig.authorizerHost)
 		envFileContent += fmt.Sprintf("TELEGRAM_TOKEN=%s\n", expectedConfig.telegramToken)
@@ -103,162 +96,15 @@ func TestLoadConfigFromEnvVars(t *testing.T) {
 		)
 
 		assert.Emptyf(
-			t, config.kafkaHost,
-			"Expected for empty config.redisDsn, actual %s", config.redisDsn,
-		)
-
-		assert.Emptyf(
-			t, config.redisDsn,
-			"Expected for empty config.redisDsn, actual %s", config.redisDsn,
-		)
-
-		assert.Emptyf(
-			t, config.scoreStorageApiHost,
-			"Expected for empty config.scoreStorageApiHost, actual %s", config.scoreStorageApiHost,
-		)
-		assert.Emptyf(
-			t, config.authorizerHost,
-			"Expected for empty config.authorizerHost, actual %s", config.authorizerHost,
-		)
-
-		assert.Emptyf(
 			t, config.telegramToken,
-			"Expected for empty config.telegramToken, actual %s", config.redisDsn,
-		)
-	})
-
-	t.Run("empty KAFKA_HOST", func(t *testing.T) {
-		_ = os.Unsetenv("KAFKA_TIMEOUT")
-		_ = os.Unsetenv("KAFKA_ATTEMPTS")
-		_ = os.Setenv("APP_SECRET", "dummy-not-empty")
-		_ = os.Setenv("KAFKA_HOST", "")
-		_ = os.Setenv("REDIS_DSN", "")
-		_ = os.Setenv("SCORE_STORAGE_API_HOST", "")
-		_ = os.Setenv("AUTHORIZER_HOST", "")
-		_ = os.Setenv("TELEGRAM_TOKEN", "")
-
-		config, err := loadConfig("")
-
-		assert.Error(t, err, "loadConfig() should exit with error, actual error is nil")
-		assert.Equalf(
-			t, "empty KAFKA_HOST", err.Error(),
-			"Expected for error with empty KAFKA_HOST, actual: %s", err.Error(),
-		)
-
-		assert.Emptyf(
-			t, config.kafkaHost,
-			"Expected for empty config.redisDsn, actual %s", config.redisDsn,
-		)
-
-		assert.Emptyf(
-			t, config.redisDsn,
-			"Expected for empty config.redisDsn, actual %s", config.redisDsn,
-		)
-
-		assert.Emptyf(
-			t, config.scoreStorageApiHost,
-			"Expected for empty config.scoreStorageApiHost, actual %s", config.scoreStorageApiHost,
-		)
-		assert.Emptyf(
-			t, config.authorizerHost,
-			"Expected for empty config.authorizerHost, actual %s", config.authorizerHost,
-		)
-
-		assert.Emptyf(
-			t, config.telegramToken,
-			"Expected for empty config.telegramToken, actual %s", config.redisDsn,
-		)
-	})
-
-	t.Run("empty REDIS_DSN", func(t *testing.T) {
-		_ = os.Unsetenv("KAFKA_TIMEOUT")
-		_ = os.Unsetenv("KAFKA_ATTEMPTS")
-		_ = os.Setenv("KAFKA_HOST", "dummy-not-empty")
-		_ = os.Setenv("REDIS_DSN", "")
-		_ = os.Setenv("SCORE_STORAGE_API_HOST", "")
-		_ = os.Setenv("AUTHORIZER_HOST", "")
-		_ = os.Setenv("TELEGRAM_TOKEN", "")
-
-		config, err := loadConfig("")
-
-		assert.Error(t, err, "loadConfig() should exit with error, actual error is nil")
-		assert.Equalf(
-			t, "empty REDIS_DSN", err.Error(),
-			"Expected for error with empty KAFKA_HOST, actual: %s", err.Error(),
-		)
-
-		assert.Emptyf(
-			t, config.redisDsn,
-			"Expected for empty config.redisDsn, actual %s", config.redisDsn,
-		)
-		assert.Emptyf(
-			t, config.scoreStorageApiHost,
-			"Expected for empty config.scoreStorageApiHost, actual %s", config.scoreStorageApiHost,
-		)
-		assert.Emptyf(
-			t, config.authorizerHost,
-			"Expected for empty config.authorizerHost, actual %s", config.authorizerHost,
-		)
-		assert.Emptyf(
-			t, config.telegramToken,
-			"Expected for empty config.telegramToken, actual %s", config.redisDsn,
-		)
-	})
-
-	t.Run("empty SCORE_STORAGE_API_HOST", func(t *testing.T) {
-		_ = os.Setenv("KAFKA_HOST", "dummy-not-empty")
-		_ = os.Setenv("REDIS_DSN", "dummy-not-empty")
-		_ = os.Setenv("SCORE_STORAGE_API_HOST", "")
-		_ = os.Setenv("AUTHORIZER_HOST", "")
-		_ = os.Setenv("TELEGRAM_TOKEN", "")
-
-		config, err := loadConfig("")
-
-		assert.Error(t, err, "loadConfig() should exit with error, actual error is nil")
-		assert.Equalf(
-			t, "empty SCORE_STORAGE_API_HOST", err.Error(),
-			"Expected for error with empty KAFKA_HOST, actual: %s", err.Error(),
-		)
-
-		assert.Emptyf(
-			t, config.scoreStorageApiHost,
-			"Expected for empty config.scoreStorageApiHost, actual %s", config.scoreStorageApiHost,
-		)
-		assert.Emptyf(
-			t, config.authorizerHost,
-			"Expected for empty config.authorizerHost, actual %s", config.authorizerHost,
-		)
-
-		assert.Emptyf(
-			t, config.telegramToken,
-			"Expected for empty config.telegramToken, actual %s", config.redisDsn,
-		)
-	})
-
-	t.Run("empty AUTHORIZER_HOST", func(t *testing.T) {
-		_ = os.Setenv("KAFKA_HOST", "dummy-not-empty")
-		_ = os.Setenv("REDIS_DSN", "dummy-not-empty")
-		_ = os.Setenv("SCORE_STORAGE_API_HOST", "dummy-not-empty")
-		_ = os.Setenv("AUTHORIZER_HOST", "")
-		_ = os.Setenv("TELEGRAM_TOKEN", "")
-
-		config, err := loadConfig("")
-
-		assert.Error(t, err, "loadConfig() should exit with error, actual error is nil")
-		assert.Equalf(
-			t, "empty AUTHORIZER_HOST", err.Error(),
-			"Expected for error with empty KAFKA_HOST, actual: %s", err.Error(),
-		)
-
-		assert.Emptyf(
-			t, config.telegramToken,
-			"Expected for empty config.telegramToken, actual %s", config.redisDsn,
+			"Expected for empty config.telegramToken, actual %s", config.telegramToken,
 		)
 	})
 
 	t.Run("empty TELEGRAM_TOKEN", func(t *testing.T) {
+		_ = os.Setenv("APP_SECRET", "dummy-not-empty")
 		_ = os.Setenv("KAFKA_HOST", "dummy-not-empty")
-		_ = os.Setenv("REDIS_DSN", "dummy-not-empty")
+		_ = os.Setenv("REDIS_DSN", BuildRedisDsn(expectedConfig.redisOptions))
 		_ = os.Setenv("SCORE_STORAGE_API_HOST", "dummy-not-empty")
 		_ = os.Setenv("AUTHORIZER_HOST", "dummy-not-empty")
 		_ = os.Setenv("TELEGRAM_TOKEN", "")
@@ -273,7 +119,7 @@ func TestLoadConfigFromEnvVars(t *testing.T) {
 
 		assert.Emptyf(
 			t, config.telegramToken,
-			"Expected for empty config.telegramToken, actual %s", config.redisDsn,
+			"Expected for empty config.telegramToken, actual %s", config.telegramToken,
 		)
 	})
 
@@ -291,14 +137,6 @@ func TestLoadConfigFromEnvVars(t *testing.T) {
 			"Expected for not exist file error, actual: %s", err.Error(),
 		)
 		assert.Emptyf(
-			t, config.redisDsn,
-			"Expected for empty config.redisDsn, actual %s", config.redisDsn,
-		)
-		assert.Emptyf(
-			t, config.scoreStorageApiHost,
-			"Expected for empty config.scoreStorageApiHost, actual %s", config.scoreStorageApiHost,
-		)
-		assert.Emptyf(
 			t, config.telegramToken,
 			"Expected for empty config.telegramToken, actual %s", config.telegramToken,
 		)
@@ -306,7 +144,7 @@ func TestLoadConfigFromEnvVars(t *testing.T) {
 }
 
 func assertConfig(t *testing.T, expected Config, actual Config) {
-	assert.Equal(t, expected.redisDsn, actual.redisDsn)
+	assert.Equal(t, expected.redisOptions, actual.redisOptions)
 	assert.Equal(t, expected.scoreStorageApiHost, actual.scoreStorageApiHost)
 	assert.Equal(t, expected.telegramToken, actual.telegramToken)
 	assert.Equal(t, expected.telegramOffline, actual.telegramOffline)

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"github.com/kneu-messenger-pigeon/events"
+	"io"
 )
 
 type ScoreChangedEventHandler struct {
-	eventQueue chan *events.ScoreChangedEvent
+	out              io.Writer
+	serviceContainer *ServiceContainer
 }
 
 func (handler *ScoreChangedEventHandler) GetExpectedMessageKey() string {
@@ -22,17 +25,16 @@ func (handler *ScoreChangedEventHandler) Commit() error {
 
 func (handler *ScoreChangedEventHandler) Handle(s any) error {
 	event := s.(*events.ScoreChangedEvent)
-	if handler.eventQueue != nil {
-		handler.eventQueue <- event
+	if handler.serviceContainer != nil && handler.serviceContainer.ClientController != nil {
+		go handler.callControllerAction(event)
 	}
 
 	return nil
 }
 
-func (handler *ScoreChangedEventHandler) GetEventQueue() <-chan *events.ScoreChangedEvent {
-	if handler.eventQueue == nil {
-		handler.eventQueue = make(chan *events.ScoreChangedEvent)
+func (handler *ScoreChangedEventHandler) callControllerAction(event *events.ScoreChangedEvent) {
+	err := handler.serviceContainer.ClientController.ScoreChangedAction(event)
+	if err != nil {
+		_, _ = fmt.Fprintf(handler.out, "ScoreChangedAction return error: %v", err)
 	}
-
-	return handler.eventQueue
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"github.com/stretchr/testify/mock"
 	"sync"
@@ -11,30 +10,28 @@ import (
 )
 
 func TestEventLoopExecute(t *testing.T) {
-	t.Run("ExecutorLoop Execute", func(t *testing.T) {
-		out := &bytes.Buffer{}
+	t.Run("Executor Execute", func(t *testing.T) {
 		matchContext := mock.MatchedBy(func(ctx context.Context) bool { return true })
 		matchWaitGroup := mock.MatchedBy(func(wg *sync.WaitGroup) bool { wg.Done(); return true })
 
 		connector := NewMockExecutorInterface(t)
 
-		connector.On("Execute", matchContext, matchWaitGroup).Return().Times(ExecutorLoopPoolSize)
+		connector.On("Execute", matchContext, matchWaitGroup).Return().Times(ExecutorPoolSize)
 
-		connectorPool := [ExecutorLoopPoolSize]ExecutorInterface{}
-		for i := 0; i < ExecutorLoopPoolSize; i++ {
-			connectorPool[i] = connector
+		pool := [ExecutorPoolSize]ExecutorInterface{}
+		for i := 0; i < ExecutorPoolSize; i++ {
+			pool[i] = connector
 		}
 
-		eventloop := ExecutorLoop{
-			out:          out,
-			executorPool: connectorPool,
+		executor := Executor{
+			executorPool: pool,
 		}
 
 		go func() {
 			time.Sleep(time.Nanosecond * 200)
 			_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 		}()
-		eventloop.execute()
+		executor.execute()
 
 		connector.AssertExpectations(t)
 	})

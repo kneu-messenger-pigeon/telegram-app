@@ -1,7 +1,7 @@
-<b>{{.Discipline.Discipline.Name}}</b>: {{.Discipline.ScoreRating.Total}}
+*{{.Discipline.Discipline.Name}}*: {{.Discipline.ScoreRating.Total}}
 рейтинг #{{.Discipline.ScoreRating.Rating}}/{{.Discipline.ScoreRating.StudentsCount}}
 
 Загалом по групі: max {{.Discipline.ScoreRating.MaxTotal}}, min {{.Discipline.ScoreRating.MinTotal}}
 
-{{range .Discipline.Scores}}{{date .Lesson.Date}} <b>{{renderScore .}}</b> <i>{{.Lesson.Type.LongName}}</i>
+{{range .Discipline.Scores}}{{date .Lesson.Date}} *{{renderScore .}}* _{{.Lesson.Type.LongName}}_
 {{end}}

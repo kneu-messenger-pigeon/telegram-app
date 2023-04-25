@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	scoreApi "github.com/kneu-messenger-pigeon/score-api"
-	"html/template"
 	"strconv"
+	"text/template"
 	"time"
 )
 

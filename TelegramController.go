@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/kneu-messenger-pigeon/authorizer-client"
@@ -9,7 +8,6 @@ import (
 	"github.com/kneu-messenger-pigeon/score-client"
 	"gopkg.in/telebot.v3"
 	tele "gopkg.in/telebot.v3"
-	"html/template"
 	"io"
 	"strconv"
 	"sync"
@@ -18,16 +16,15 @@ import (
 const listCommand = "/list"
 
 type TelegramController struct {
-	out                      io.Writer
-	bot                      *telebot.Bot
-	userRepository           *UserRepository
-	authorizerClient         *authorizer.Client
-	userLogoutHandler        UserLogoutHandlerInterface
-	scoreClient              score.ClientInterface
-	userAuthorizedEventQueue <-chan *events.UserAuthorizedEvent
-	scoreChangedEventQueue   <-chan *events.ScoreChangedEvent
-	templates                *template.Template
-	authRedirectUrl          string
+	out               io.Writer
+	bot               *telebot.Bot
+	composer          MessageComposerInterface
+	userRepository    *UserRepository
+	userLogoutHandler UserLogoutHandlerInterface
+	authorizerClient  *authorizer.Client
+	scoreClient       score.ClientInterface
+
+	authRedirectUrl string
 
 	markups struct {
 		disciplineButton           *telebot.InlineButton
@@ -39,11 +36,7 @@ type TelegramController struct {
 }
 
 func (controller *TelegramController) Init() {
-	controller.templates = template.Must(
-		template.New("").
-			Funcs(TemplateFunctionMap).
-			ParseGlob("templates/*.html"),
-	)
+	controller.authRedirectUrl = fmt.Sprintf("https://t.me/%s?start", controller.bot.Me.Username)
 
 	controller.markups.disciplineButton = &telebot.InlineButton{
 		Unique: "discipline",
@@ -75,15 +68,12 @@ func (controller *TelegramController) Init() {
 		},
 	}
 
-	controller.authRedirectUrl = fmt.Sprintf("https://t.me/%s?start", controller.bot.Me.Username)
-
 	controller.setupRoutes()
 }
 
 func (controller *TelegramController) Execute(ctx context.Context, wg *sync.WaitGroup) {
 	controller.Init()
 
-	go controller.handleEvents(ctx)
 	go controller.bot.Start()
 	<-ctx.Done()
 	controller.bot.Stop()
@@ -103,33 +93,15 @@ func (controller *TelegramController) setupRoutes() {
 	controller.bot.Handle(tele.OnText, controller.disciplinesListAction)
 }
 
-func (controller *TelegramController) handleEvents(ctx context.Context) {
-	var userAuthorizedEvent *events.UserAuthorizedEvent
-	var scoreChangeEvent *events.ScoreChangedEvent
-
-	for {
-		select {
-		case userAuthorizedEvent = <-controller.userAuthorizedEventQueue:
-			controller.userAuthorizedAction(userAuthorizedEvent)
-
-		case scoreChangeEvent = <-controller.scoreChangedEventQueue:
-			controller.scoreChangedAction(scoreChangeEvent)
-
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
 func (controller *TelegramController) resetAction(c tele.Context) error {
 	return controller.userLogoutHandler.handle(strconv.FormatInt(c.Chat().ID, 10))
 }
 
-func (controller *TelegramController) userAuthorizedAction(event *events.UserAuthorizedEvent) {
+func (controller *TelegramController) UserAuthorizedAction(event *events.UserAuthorizedEvent) error {
 	if event.StudentId != 0 {
-		controller.welcomeAuthorizedAction(event)
+		return controller.welcomeAuthorizedAction(event)
 	} else {
-		controller.logoutFinishedAction(event)
+		return controller.logoutFinishedAction(event)
 	}
 }
 
@@ -144,42 +116,32 @@ func (controller *TelegramController) welcomeAnonymousAction(c tele.Context) err
 		return err
 	}
 
-	output := bytes.Buffer{}
-	err = controller.templates.ExecuteTemplate(&output, "WelcomeAnonymous.html", authUrl)
+	err, message := controller.composer.ComposeWelcomeAnonymousMessage(authUrl)
 	if err == nil {
-		err = c.Send(output.String())
+		err = c.Send(message)
 	}
 	return err
 }
 
-func (controller *TelegramController) welcomeAuthorizedAction(event *events.UserAuthorizedEvent) {
+func (controller *TelegramController) welcomeAuthorizedAction(event *events.UserAuthorizedEvent) error {
 	student := controller.userRepository.GetStudent(event.ClientUserId)
-	output := bytes.Buffer{}
-	err := controller.templates.ExecuteTemplate(
-		&output, "WelcomeAuthorizedAction.html",
-		&UserAuthorizedTemplateData{student.GetTemplateData()},
+
+	err, message := controller.composer.ComposeWelcomeAuthorizedMessage(
+		UserAuthorizedMessageData{student.GetTemplateData()},
 	)
-
 	if err == nil {
-		_, err = controller.bot.Send(makeChatId(event.ClientUserId), output.String(), controller.markups.authorizedUserReplyMarkup)
+		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.authorizedUserReplyMarkup)
 	}
 
-	if err != nil {
-		_, _ = fmt.Fprintf(controller.out, "Failed to send welcome auth: %v", err)
-	}
+	return err
 }
 
-func (controller *TelegramController) logoutFinishedAction(event *events.UserAuthorizedEvent) {
-	output := bytes.Buffer{}
-	err := controller.templates.ExecuteTemplate(&output, "LogoutFinishedAction.html", nil)
-
+func (controller *TelegramController) logoutFinishedAction(event *events.UserAuthorizedEvent) error {
+	err, message := controller.composer.ComposeLogoutFinishedMessage()
 	if err == nil {
-		_, err = controller.bot.Send(makeChatId(event.ClientUserId), output.String(), controller.markups.logoutUserReplyMarkup)
+		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.logoutUserReplyMarkup)
 	}
-
-	if err != nil {
-		_, _ = fmt.Fprintf(controller.out, "Failed to send logout finished: %v", err)
-	}
+	return err
 }
 
 func (controller *TelegramController) disciplinesListAction(c tele.Context) error {
@@ -202,17 +164,12 @@ func (controller *TelegramController) disciplinesListAction(c tele.Context) erro
 			}
 		}
 
-		output := bytes.Buffer{}
-		err = controller.templates.ExecuteTemplate(
-			&output, "DisciplinesList.html",
-			&DisciplinesListTemplateData{
-				student.GetTemplateData(),
-				disciplines,
-			},
+		var message string
+		err, message = controller.composer.ComposeDisciplinesListMessage(
+			DisciplinesListMessageData{student.GetTemplateData(), disciplines},
 		)
-
 		if err == nil {
-			err = c.Send(output.String(), &telebot.SendOptions{
+			err = c.Send(message, &telebot.SendOptions{
 				DisableWebPagePreview: true,
 			}, replyMarkup)
 		}
@@ -222,33 +179,31 @@ func (controller *TelegramController) disciplinesListAction(c tele.Context) erro
 }
 
 func (controller *TelegramController) disciplineScoresAction(c tele.Context) error {
-	output := bytes.Buffer{}
+	var message string
 	student := getStudent(c)
 	disciplineId, _ := strconv.Atoi(c.Callback().Data)
 
 	discipline, err := controller.scoreClient.GetStudentDiscipline(student.Id, disciplineId)
 
 	if err == nil {
-		err = controller.templates.ExecuteTemplate(
-			&output, "DisciplineScore.html",
-			&DisciplinesScoresTemplateData{
-				student.GetTemplateData(),
-				discipline,
-			},
+		err, message = controller.composer.ComposeDisciplineScoresMessage(
+			DisciplinesScoresMessageData{student.GetTemplateData(), discipline},
 		)
-	}
 
-	if err == nil {
-		err = c.Send(output.String(), controller.markups.disciplineScoreReplyMarkup)
+		if err == nil {
+			err = c.Send(message, controller.markups.disciplineScoreReplyMarkup)
+		}
 	}
 
 	return err
 }
 
-func (controller *TelegramController) scoreChangedAction(event *events.ScoreChangedEvent) {
+func (controller *TelegramController) ScoreChangedAction(event *events.ScoreChangedEvent) error {
 	chatIds := controller.userRepository.GetClientUserIds(event.StudentId)
 
 	for _, chatId := range chatIds {
 		_, _ = controller.bot.Send(makeChatId(chatId), "S")
 	}
+
+	return nil
 }

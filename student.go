@@ -14,8 +14,8 @@ func (student *Student) GetNamePrefix() string {
 	return "Пане"
 }
 
-func (student *Student) GetTemplateData() StudentBaseTemplateData {
-	return StudentBaseTemplateData{
+func (student *Student) GetTemplateData() StudentMessageData {
+	return StudentMessageData{
 		NamePrefix: student.GetNamePrefix(),
 		Name:       student.FirstName,
 	}

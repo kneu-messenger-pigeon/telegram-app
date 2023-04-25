@@ -1,12 +1,7 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"github.com/kneu-messenger-pigeon/authorizer-client"
-	"github.com/kneu-messenger-pigeon/score-client"
-	"github.com/redis/go-redis/v9"
-	"github.com/segmentio/kafka-go"
 	"io"
 	"os"
 	"time"
@@ -23,9 +18,7 @@ func main() {
 }
 
 func runApp(out io.Writer) error {
-	var opt *redis.Options
 	var bot *tele.Bot
-	var redisClient *redis.Client
 
 	envFilename := ""
 	if _, err := os.Stat(".env"); err == nil {
@@ -33,18 +26,6 @@ func runApp(out io.Writer) error {
 	}
 
 	config, err := loadConfig(envFilename)
-	if err == nil {
-		opt, err = redis.ParseURL(config.redisDsn)
-	}
-
-	if err == nil {
-		redisClient = redis.NewClient(opt)
-		_, err = redisClient.Ping(context.Background()).Result()
-	}
-
-	if err != nil {
-		_, _ = fmt.Fprintf(out, "Failed to connect to redisClient: %s\n", err.Error())
-	}
 
 	pref := tele.Settings{
 		Token:   config.telegramToken,
@@ -53,7 +34,7 @@ func runApp(out io.Writer) error {
 		Poller: &tele.LongPoller{
 			Timeout: time.Second * 30,
 		},
-		ParseMode: tele.ModeHTML,
+		ParseMode: tele.ModeMarkdown,
 	}
 
 	if err == nil {
@@ -64,101 +45,20 @@ func runApp(out io.Writer) error {
 		return err
 	}
 
-	userRepository := &UserRepository{
-		out:   out,
-		redis: redisClient,
+	serviceContainer := NewServiceContainer(config.BaseConfig, out)
+	telegramController := &TelegramController{
+		out:               out,
+		bot:               bot,
+		composer:          NewMessageComposer(MessageComposerConfig{}),
+		userRepository:    serviceContainer.UserRepository,
+		userLogoutHandler: serviceContainer.UserLogoutHandler,
+		authorizerClient:  serviceContainer.AuthorizerClient,
+		scoreClient:       serviceContainer.ScoreClient,
 	}
 
-	kafkaDialer := &kafka.Dialer{
-		Timeout:   config.kafkaTimeout,
-		DualStack: kafka.DefaultDialer.DualStack,
-	}
+	serviceContainer.SetController(telegramController)
 
-	userAuthorizedEventHandler := &UserAuthorizedEventHandler{
-		repository: userRepository,
-		clientName: clientName,
-	}
-
-	userLogoutHandler := UserLogoutHandler{
-		out:    out,
-		Client: clientName,
-		writer: &kafka.Writer{
-			Addr:     kafka.TCP(config.kafkaHost),
-			Topic:    "authorized_users",
-			Balancer: &kafka.LeastBytes{},
-		},
-	}
-
-	userAuthorizedEventProcessor := KafkaConsumerProcessor{
-		out: out,
-		reader: kafka.NewReader(
-			kafka.ReaderConfig{
-				Brokers:     []string{config.kafkaHost},
-				GroupID:     clientName,
-				Topic:       "authorized_users",
-				MinBytes:    10,
-				MaxBytes:    10e3,
-				MaxWait:     time.Second,
-				MaxAttempts: config.kafkaAttempts,
-				Dialer:      kafkaDialer,
-			},
-		),
-		handler:         userAuthorizedEventHandler,
-		commitThreshold: defaultCommitThreshold,
-	}
-
-	scoreChangedEventHandler := &ScoreChangedEventHandler{}
-
-	scoreChangedEventProcessor := KafkaConsumerProcessor{
-		out: out,
-		reader: kafka.NewReader(
-			kafka.ReaderConfig{
-				Brokers:     []string{config.kafkaHost},
-				GroupID:     clientName,
-				Topic:       "scores_changes_feed",
-				MinBytes:    10,
-				MaxBytes:    10e3,
-				MaxWait:     time.Second,
-				MaxAttempts: config.kafkaAttempts,
-				Dialer:      kafkaDialer,
-			},
-		),
-		handler:         &ScoreChangedEventHandler{},
-		commitThreshold: defaultCommitThreshold,
-	}
-
-	telegramController := TelegramController{
-		out: out,
-		bot: bot,
-		authorizerClient: &authorizer.Client{
-			Host:       config.authorizerHost,
-			Secret:     config.appSecret,
-			ClientName: clientName,
-		},
-		userRepository:    userRepository,
-		userLogoutHandler: userLogoutHandler,
-		scoreClient: &score.Client{
-			Host: config.scoreStorageApiHost,
-		},
-		userAuthorizedEventQueue: userAuthorizedEventHandler.GetEventQueue(),
-		scoreChangedEventQueue:   scoreChangedEventHandler.GetEventQueue(),
-	}
-
-	executor := ExecutorLoop{
-		out: nil,
-		executorPool: [ExecutorLoopPoolSize]ExecutorInterface{
-			&telegramController,
-			&userAuthorizedEventProcessor,
-			&scoreChangedEventProcessor,
-		},
-	}
-
-	defer func() {
-		redisClient.Save(context.Background())
-		_ = redisClient.Close()
-	}()
-
-	executor.execute()
+	serviceContainer.Executor.execute()
 
 	return nil
 }
