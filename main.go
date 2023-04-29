@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	framework "github.com/kneu-messenger-pigeon/client-framework"
+	tele "gopkg.in/telebot.v3"
 	"io"
 	"os"
 	"time"
-
-	tele "gopkg.in/telebot.v3"
 )
 
 const ExitCodeMainError = 1
@@ -45,11 +45,12 @@ func runApp(out io.Writer) error {
 		return err
 	}
 
-	serviceContainer := NewServiceContainer(config.BaseConfig, out)
+	serviceContainer := framework.NewServiceContainer(config.BaseConfig, out)
+
 	telegramController := &TelegramController{
 		out:               out,
 		bot:               bot,
-		composer:          NewMessageComposer(MessageComposerConfig{}),
+		composer:          framework.NewMessageComposer(framework.MessageComposerConfig{}),
 		userRepository:    serviceContainer.UserRepository,
 		userLogoutHandler: serviceContainer.UserLogoutHandler,
 		authorizerClient:  serviceContainer.AuthorizerClient,
@@ -58,7 +59,7 @@ func runApp(out io.Writer) error {
 
 	serviceContainer.SetController(telegramController)
 
-	serviceContainer.Executor.execute()
+	serviceContainer.Executor.Execute()
 
 	return nil
 }

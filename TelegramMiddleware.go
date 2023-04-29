@@ -1,13 +1,14 @@
 package main
 
 import (
+	framework "github.com/kneu-messenger-pigeon/client-framework"
 	tele "gopkg.in/telebot.v3"
 	"strconv"
 )
 
 const contextStudentKey = "student"
 
-func authMiddleware(userRepository *UserRepository) tele.MiddlewareFunc {
+func authMiddleware(userRepository *framework.UserRepository) tele.MiddlewareFunc {
 	return func(next tele.HandlerFunc) tele.HandlerFunc {
 		return func(c tele.Context) error {
 			c.Set(

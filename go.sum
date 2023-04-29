@@ -273,6 +273,16 @@ github.com/kneu-messenger-pigeon/authorizer-client v0.1.1 h1:pXd2UHQ3fPWDOW8LPb0
 github.com/kneu-messenger-pigeon/authorizer-client v0.1.1/go.mod h1:tNdwuaRhX09ewMFOkESyxOASBY7gAzNWgfVDoro3VnQ=
 github.com/kneu-messenger-pigeon/authorizer-client v0.1.2 h1:m+7L22kW3DBtgqjE28JBM7dFfUxXW2wy76TW0jul4Gs=
 github.com/kneu-messenger-pigeon/authorizer-client v0.1.2/go.mod h1:tNdwuaRhX09ewMFOkESyxOASBY7gAzNWgfVDoro3VnQ=
+github.com/kneu-messenger-pigeon/client-framework v0.1.0 h1:85717tL+rGaEEkZ+RV+x7UGVqlN0sZVEtGRRujQUwio=
+github.com/kneu-messenger-pigeon/client-framework v0.1.0/go.mod h1:DG8QIFNeaMbggmMpz/8P6UguFq23PZOiUab3M598EwA=
+github.com/kneu-messenger-pigeon/client-framework v0.1.1 h1:CSHGC7KWoieBfJY09eL0JzXKyc9iOfCmqhZ8gWyE5SQ=
+github.com/kneu-messenger-pigeon/client-framework v0.1.1/go.mod h1:DG8QIFNeaMbggmMpz/8P6UguFq23PZOiUab3M598EwA=
+github.com/kneu-messenger-pigeon/client-framework v0.1.2 h1:yYDZ7yL1ozU3vLO2rxRmwR/A3nmKh+xTDJzLUQcHors=
+github.com/kneu-messenger-pigeon/client-framework v0.1.2/go.mod h1:DG8QIFNeaMbggmMpz/8P6UguFq23PZOiUab3M598EwA=
+github.com/kneu-messenger-pigeon/client-framework v0.1.3 h1:qWjeozR43jwpvvzzJmFHLYGHEQpUXz/G7i0SJkKFLKQ=
+github.com/kneu-messenger-pigeon/client-framework v0.1.3/go.mod h1:DG8QIFNeaMbggmMpz/8P6UguFq23PZOiUab3M598EwA=
+github.com/kneu-messenger-pigeon/client-framework v0.1.4 h1:svBAr5vY0btmDUH8CA+NR2LVck310HqHKT3YEOrOweU=
+github.com/kneu-messenger-pigeon/client-framework v0.1.4/go.mod h1:DG8QIFNeaMbggmMpz/8P6UguFq23PZOiUab3M598EwA=
 github.com/kneu-messenger-pigeon/events v0.1.23 h1:N3TYDysQ9DNIyQMhMhZkzgYHg5HRqZwmK98i+yKpV+c=
 github.com/kneu-messenger-pigeon/events v0.1.23/go.mod h1:yPgqpO/+XVOZmTdH8BB4wbE+2/keLNhjorMVzJwHQL8=
 github.com/kneu-messenger-pigeon/events v0.1.27 h1:d4KnkSJ5GUDc/LOFGG7+kcTgFu1U5MR01G8Nvdg7/1c=
@@ -879,6 +889,8 @@ google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQ
 google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 google.golang.org/protobuf v1.28.0 h1:w43yiav+6bVFTBQFZX0r7ipe9JQ1QsbMgHwbBziscLw=
 google.golang.org/protobuf v1.28.0/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
+google.golang.org/protobuf v1.30.0 h1:kPPoIgf3TsEvrm0PFe15JQ+570QVxYzEvvHqChK+cng=
+google.golang.org/protobuf v1.30.0/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

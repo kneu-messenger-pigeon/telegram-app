@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kneu-messenger-pigeon/authorizer-client"
+	framework "github.com/kneu-messenger-pigeon/client-framework"
 	"github.com/kneu-messenger-pigeon/events"
 	"github.com/kneu-messenger-pigeon/score-client"
 	"gopkg.in/telebot.v3"
@@ -18,9 +19,9 @@ const listCommand = "/list"
 type TelegramController struct {
 	out               io.Writer
 	bot               *telebot.Bot
-	composer          MessageComposerInterface
-	userRepository    *UserRepository
-	userLogoutHandler UserLogoutHandlerInterface
+	composer          framework.MessageComposerInterface
+	userRepository    *framework.UserRepository
+	userLogoutHandler framework.UserLogoutHandlerInterface
 	authorizerClient  *authorizer.Client
 	scoreClient       score.ClientInterface
 
@@ -94,7 +95,7 @@ func (controller *TelegramController) setupRoutes() {
 }
 
 func (controller *TelegramController) resetAction(c tele.Context) error {
-	return controller.userLogoutHandler.handle(strconv.FormatInt(c.Chat().ID, 10))
+	return controller.userLogoutHandler.Handle(strconv.FormatInt(c.Chat().ID, 10))
 }
 
 func (controller *TelegramController) UserAuthorizedAction(event *events.UserAuthorizedEvent) error {
@@ -127,7 +128,9 @@ func (controller *TelegramController) welcomeAuthorizedAction(event *events.User
 	student := controller.userRepository.GetStudent(event.ClientUserId)
 
 	err, message := controller.composer.ComposeWelcomeAuthorizedMessage(
-		UserAuthorizedMessageData{student.GetTemplateData()},
+		framework.UserAuthorizedMessageData{
+			StudentMessageData: student.GetTemplateData(),
+		},
 	)
 	if err == nil {
 		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.authorizedUserReplyMarkup)
@@ -166,7 +169,10 @@ func (controller *TelegramController) disciplinesListAction(c tele.Context) erro
 
 		var message string
 		err, message = controller.composer.ComposeDisciplinesListMessage(
-			DisciplinesListMessageData{student.GetTemplateData(), disciplines},
+			framework.DisciplinesListMessageData{
+				StudentMessageData: student.GetTemplateData(),
+				Disciplines:        disciplines,
+			},
 		)
 		if err == nil {
 			err = c.Send(message, &telebot.SendOptions{
@@ -187,7 +193,10 @@ func (controller *TelegramController) disciplineScoresAction(c tele.Context) err
 
 	if err == nil {
 		err, message = controller.composer.ComposeDisciplineScoresMessage(
-			DisciplinesScoresMessageData{student.GetTemplateData(), discipline},
+			framework.DisciplinesScoresMessageData{
+				StudentMessageData: student.GetTemplateData(),
+				Discipline:         discipline,
+			},
 		)
 
 		if err == nil {

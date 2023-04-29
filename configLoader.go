@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
+	framework "github.com/kneu-messenger-pigeon/client-framework"
 	"os"
 	"strings"
 )
 
 type Config struct {
-	BaseConfig
+	framework.BaseConfig
 	telegramToken   string
 	telegramOffline bool
 	// for test purpose override with mock server
@@ -15,11 +16,7 @@ type Config struct {
 }
 
 func loadConfig(envFilename string) (Config, error) {
-	baseConfig, err := LoadBaseConfig(envFilename, clientName)
-
-	if err != nil {
-		return Config{}, err
-	}
+	baseConfig, baseErr := framework.LoadBaseConfig(envFilename, clientName)
 
 	config := Config{
 		BaseConfig:      baseConfig,
@@ -32,5 +29,5 @@ func loadConfig(envFilename string) (Config, error) {
 		return Config{}, errors.New("empty TELEGRAM_TOKEN")
 	}
 
-	return config, nil
+	return config, baseErr
 }
