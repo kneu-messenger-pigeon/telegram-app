@@ -18,7 +18,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
-	github.com/kneu-messenger-pigeon/client-framework v0.1.4 // indirect
+	github.com/kneu-messenger-pigeon/client-framework v0.1.5 // indirect
 	github.com/kneu-messenger-pigeon/score-api v0.1.6 // indirect
 	github.com/kneu-messenger-pigeon/score-client v0.1.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect

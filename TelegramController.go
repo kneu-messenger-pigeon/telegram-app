@@ -84,29 +84,21 @@ func (controller *TelegramController) Execute(ctx context.Context, wg *sync.Wait
 func (controller *TelegramController) setupRoutes() {
 	controller.bot.Use(onlyPrivateChatMiddleware())
 	controller.bot.Use(authMiddleware(controller.userRepository))
-	controller.bot.Use(onlyAuthorizedMiddleware(controller.welcomeAnonymousAction))
+	controller.bot.Use(onlyAuthorizedMiddleware(controller.WelcomeAnonymousAction))
 
-	controller.bot.Handle("/reset", controller.resetAction)
-	controller.bot.Handle("/start", controller.disciplinesListAction)
-	controller.bot.Handle(listCommand, controller.disciplinesListAction)
-	controller.bot.Handle(controller.markups.listButton, controller.disciplinesListAction)
-	controller.bot.Handle(controller.markups.disciplineButton, controller.disciplineScoresAction)
-	controller.bot.Handle(tele.OnText, controller.disciplinesListAction)
+	controller.bot.Handle("/reset", controller.ResetAction)
+	controller.bot.Handle("/start", controller.DisciplinesListAction)
+	controller.bot.Handle(listCommand, controller.DisciplinesListAction)
+	controller.bot.Handle(controller.markups.listButton, controller.DisciplinesListAction)
+	controller.bot.Handle(controller.markups.disciplineButton, controller.DisciplineScoresAction)
+	controller.bot.Handle(tele.OnText, controller.DisciplinesListAction)
 }
 
-func (controller *TelegramController) resetAction(c tele.Context) error {
+func (controller *TelegramController) ResetAction(c tele.Context) error {
 	return controller.userLogoutHandler.Handle(strconv.FormatInt(c.Chat().ID, 10))
 }
 
-func (controller *TelegramController) UserAuthorizedAction(event *events.UserAuthorizedEvent) error {
-	if event.StudentId != 0 {
-		return controller.welcomeAuthorizedAction(event)
-	} else {
-		return controller.logoutFinishedAction(event)
-	}
-}
-
-func (controller *TelegramController) welcomeAnonymousAction(c tele.Context) error {
+func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) error {
 	authUrl, err := controller.authorizerClient.GetAuthUrl(
 		strconv.FormatInt(c.Chat().ID, 10),
 		controller.authRedirectUrl,
@@ -124,7 +116,7 @@ func (controller *TelegramController) welcomeAnonymousAction(c tele.Context) err
 	return err
 }
 
-func (controller *TelegramController) welcomeAuthorizedAction(event *events.UserAuthorizedEvent) error {
+func (controller *TelegramController) WelcomeAuthorizedAction(event *events.UserAuthorizedEvent) error {
 	student := controller.userRepository.GetStudent(event.ClientUserId)
 
 	err, message := controller.composer.ComposeWelcomeAuthorizedMessage(
@@ -139,7 +131,7 @@ func (controller *TelegramController) welcomeAuthorizedAction(event *events.User
 	return err
 }
 
-func (controller *TelegramController) logoutFinishedAction(event *events.UserAuthorizedEvent) error {
+func (controller *TelegramController) LogoutFinishedAction(event *events.UserAuthorizedEvent) error {
 	err, message := controller.composer.ComposeLogoutFinishedMessage()
 	if err == nil {
 		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.logoutUserReplyMarkup)
@@ -147,7 +139,7 @@ func (controller *TelegramController) logoutFinishedAction(event *events.UserAut
 	return err
 }
 
-func (controller *TelegramController) disciplinesListAction(c tele.Context) error {
+func (controller *TelegramController) DisciplinesListAction(c tele.Context) error {
 	student := getStudent(c)
 
 	disciplines, err := controller.scoreClient.GetStudentDisciplines(student.Id)
@@ -184,7 +176,7 @@ func (controller *TelegramController) disciplinesListAction(c tele.Context) erro
 	return err
 }
 
-func (controller *TelegramController) disciplineScoresAction(c tele.Context) error {
+func (controller *TelegramController) DisciplineScoresAction(c tele.Context) error {
 	var message string
 	student := getStudent(c)
 	disciplineId, _ := strconv.Atoi(c.Callback().Data)
