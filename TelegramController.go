@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kneu-messenger-pigeon/authorizer-client"
 	framework "github.com/kneu-messenger-pigeon/client-framework"
+	"github.com/kneu-messenger-pigeon/client-framework/models"
 	"github.com/kneu-messenger-pigeon/events"
 	"github.com/kneu-messenger-pigeon/score-client"
 	"gopkg.in/telebot.v3"
@@ -120,8 +121,8 @@ func (controller *TelegramController) WelcomeAuthorizedAction(event *events.User
 	student := controller.userRepository.GetStudent(event.ClientUserId)
 
 	err, message := controller.composer.ComposeWelcomeAuthorizedMessage(
-		framework.UserAuthorizedMessageData{
-			StudentMessageData: student.GetTemplateData(),
+		models.UserAuthorizedMessageData{
+			StudentMessageData: models.NewStudentMessageData(student),
 		},
 	)
 	if err == nil {
@@ -161,8 +162,8 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 
 		var message string
 		err, message = controller.composer.ComposeDisciplinesListMessage(
-			framework.DisciplinesListMessageData{
-				StudentMessageData: student.GetTemplateData(),
+			models.DisciplinesListMessageData{
+				StudentMessageData: models.NewStudentMessageData(student),
 				Disciplines:        disciplines,
 			},
 		)
@@ -185,8 +186,8 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 
 	if err == nil {
 		err, message = controller.composer.ComposeDisciplineScoresMessage(
-			framework.DisciplinesScoresMessageData{
-				StudentMessageData: student.GetTemplateData(),
+			models.DisciplinesScoresMessageData{
+				StudentMessageData: models.NewStudentMessageData(student),
 				Discipline:         discipline,
 			},
 		)
