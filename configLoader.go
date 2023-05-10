@@ -16,7 +16,7 @@ type Config struct {
 }
 
 func loadConfig(envFilename string) (Config, error) {
-	baseConfig, baseErr := framework.LoadBaseConfig(envFilename, clientName)
+	baseConfig, err := framework.LoadBaseConfig(envFilename, clientName)
 
 	config := Config{
 		BaseConfig:      baseConfig,
@@ -25,9 +25,9 @@ func loadConfig(envFilename string) (Config, error) {
 		telegramURL:     os.Getenv("TELEGRAM_URL"),
 	}
 
-	if config.telegramToken == "" {
-		return Config{}, errors.New("empty TELEGRAM_TOKEN")
+	if config.telegramToken == "" && err == nil {
+		err = errors.New("empty TELEGRAM_TOKEN")
 	}
 
-	return config, baseErr
+	return config, err
 }

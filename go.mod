@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/kneu-messenger-pigeon/authorizer-client v0.1.2
-	github.com/kneu-messenger-pigeon/client-framework v0.1.6
+	github.com/kneu-messenger-pigeon/client-framework v0.1.8
 	github.com/kneu-messenger-pigeon/events v0.1.29
 	github.com/kneu-messenger-pigeon/score-client v0.1.2
 	github.com/stretchr/testify v1.8.2

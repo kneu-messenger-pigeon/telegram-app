@@ -17,6 +17,8 @@ import (
 
 const listCommand = "/list"
 
+const TelegramControllerStartedMessage = "Telegram controller started"
+
 type TelegramController struct {
 	out               io.Writer
 	bot               *telebot.Bot
@@ -77,6 +79,7 @@ func (controller *TelegramController) Execute(ctx context.Context, wg *sync.Wait
 	controller.Init()
 
 	go controller.bot.Start()
+	_, _ = fmt.Fprint(controller.out, TelegramControllerStartedMessage)
 	<-ctx.Done()
 	controller.bot.Stop()
 	wg.Done()

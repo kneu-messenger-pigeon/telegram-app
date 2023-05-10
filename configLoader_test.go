@@ -1,34 +1,42 @@
 package main
 
 import (
-	framework "github.com/kneu-messenger-pigeon/client-framework"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
 
 var expectedConfig = Config{
-	BaseConfig:      framework.BaseConfig{},
 	telegramToken:   "telegram-token",
 	telegramOffline: true,
 	telegramURL:     "https://api.telegram.org",
 }
 
+func loadTestBaseConfigVars() {
+	_ = os.Unsetenv("KAFKA_TIMEOUT")
+	_ = os.Unsetenv("KAFKA_ATTEMPTS")
+	_ = os.Setenv("APP_SECRET", "test-test")
+	_ = os.Setenv("KAFKA_HOST", "localhost:29092")
+	_ = os.Setenv("REDIS_DSN", "redis://@localhost:6400/2")
+	_ = os.Setenv("SCORE_STORAGE_API_HOST", "http://localhost:8083")
+	_ = os.Setenv("AUTHORIZER_HOST", "http://localhost:9080")
+}
+
 func TestLoadConfigFromEnvVars(t *testing.T) {
 	t.Run("FromEnvVars", func(t *testing.T) {
+		loadTestBaseConfigVars()
 		_ = os.Setenv("TELEGRAM_TOKEN", expectedConfig.telegramToken)
 		_ = os.Setenv("TELEGRAM_OFFLINE", "true")
 		_ = os.Setenv("TELEGRAM_URL", expectedConfig.telegramURL)
 
-		config, err := loadConfig("")
+		actualConfig, err := loadConfig("")
 
-		assert.Error(t, err)
-		assert.Equal(t, "empty APP_SECRET", err.Error())
-		assertConfig(t, expectedConfig, config)
-		assert.Equalf(t, expectedConfig, config, "Expected for %v, actual: %v", expectedConfig, config)
+		assert.NoError(t, err)
+		assertConfig(t, expectedConfig, actualConfig)
 	})
 
 	t.Run("empty TELEGRAM_TOKEN", func(t *testing.T) {
+		loadTestBaseConfigVars()
 		_ = os.Setenv("TELEGRAM_TOKEN", "")
 
 		config, err := loadConfig("")
@@ -36,7 +44,7 @@ func TestLoadConfigFromEnvVars(t *testing.T) {
 		assert.Error(t, err, "loadConfig() should exit with error, actual error is nil")
 		assert.Equalf(
 			t, "empty TELEGRAM_TOKEN", err.Error(),
-			"Expected for error with empty KAFKA_HOST, actual: %s", err.Error(),
+			"Expected for error with empty TELEGRAM_TOKEN, actual: %s", err.Error(),
 		)
 
 		assert.Emptyf(
