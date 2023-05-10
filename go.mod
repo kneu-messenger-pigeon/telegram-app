@@ -3,10 +3,10 @@ module telegram-app
 go 1.20
 
 require (
-	github.com/kneu-messenger-pigeon/authorizer-client v0.1.2
+	github.com/kneu-messenger-pigeon/authorizer-client v0.1.3
 	github.com/kneu-messenger-pigeon/client-framework v0.1.8
 	github.com/kneu-messenger-pigeon/events v0.1.29
-	github.com/kneu-messenger-pigeon/score-client v0.1.2
+	github.com/kneu-messenger-pigeon/score-client v0.1.3
 	github.com/stretchr/testify v1.8.2
 	gopkg.in/telebot.v3 v3.1.3
 )
@@ -15,6 +15,8 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/h2non/gock v1.2.0 // indirect
+	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/kneu-messenger-pigeon/score-api v0.1.6 // indirect

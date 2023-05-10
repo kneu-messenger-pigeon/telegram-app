@@ -15,7 +15,11 @@ import (
 	"sync"
 )
 
+const startCommand = "/start"
+
 const listCommand = "/list"
+
+const resetCommand = "/reset"
 
 const TelegramControllerStartedMessage = "Telegram controller started"
 
@@ -23,9 +27,9 @@ type TelegramController struct {
 	out               io.Writer
 	bot               *telebot.Bot
 	composer          framework.MessageComposerInterface
-	userRepository    *framework.UserRepository
+	userRepository    framework.UserRepositoryInterface
 	userLogoutHandler framework.UserLogoutHandlerInterface
-	authorizerClient  *authorizer.Client
+	authorizerClient  authorizer.ClientInterface
 	scoreClient       score.ClientInterface
 
 	authRedirectUrl string
@@ -67,7 +71,7 @@ func (controller *TelegramController) Init() {
 	controller.markups.logoutUserReplyMarkup = &telebot.ReplyMarkup{
 		ReplyKeyboard: [][]tele.ReplyButton{
 			{
-				{Text: "/start Запустити!"},
+				{Text: startCommand + " Запустити!"},
 			},
 		},
 	}
@@ -90,8 +94,8 @@ func (controller *TelegramController) setupRoutes() {
 	controller.bot.Use(authMiddleware(controller.userRepository))
 	controller.bot.Use(onlyAuthorizedMiddleware(controller.WelcomeAnonymousAction))
 
-	controller.bot.Handle("/reset", controller.ResetAction)
-	controller.bot.Handle("/start", controller.DisciplinesListAction)
+	controller.bot.Handle(resetCommand, controller.ResetAction)
+	controller.bot.Handle(startCommand, controller.DisciplinesListAction)
 	controller.bot.Handle(listCommand, controller.DisciplinesListAction)
 	controller.bot.Handle(controller.markups.listButton, controller.DisciplinesListAction)
 	controller.bot.Handle(controller.markups.disciplineButton, controller.DisciplineScoresAction)
@@ -207,7 +211,10 @@ func (controller *TelegramController) ScoreChangedAction(event *events.ScoreChan
 	chatIds := controller.userRepository.GetClientUserIds(event.StudentId)
 
 	for _, chatId := range chatIds {
-		_, _ = controller.bot.Send(makeChatId(chatId), "S")
+		err, message := controller.composer.ComposeScoreChanged()
+		if err == nil {
+			_, _ = controller.bot.Send(makeChatId(chatId), message)
+		}
 	}
 
 	return nil

@@ -8,7 +8,7 @@ import (
 
 const contextStudentKey = "student"
 
-func authMiddleware(userRepository *framework.UserRepository) tele.MiddlewareFunc {
+func authMiddleware(userRepository framework.UserRepositoryInterface) tele.MiddlewareFunc {
 	return func(next tele.HandlerFunc) tele.HandlerFunc {
 		return func(c tele.Context) error {
 			c.Set(

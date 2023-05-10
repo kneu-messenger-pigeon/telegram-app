@@ -221,6 +221,10 @@ github.com/googleapis/gax-go/v2 v2.4.0/go.mod h1:XOTVJ59hdnfJLIP/dh8n5CGryZR2LxK
 github.com/googleapis/google-cloud-go-testing v0.0.0-20200911160855-bcd43fbb19e8/go.mod h1:dvDLG8qkwmyD9a/MJJN3XJcT3xFxOKAvTZGvuZmac9g=
 github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0/go.mod h1:8NvIoxWQoOIhqOTXgfV/d3M/q6VIi02HzZEHgUlZvzk=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
+github.com/h2non/gock v1.2.0 h1:K6ol8rfrRkUOefooBC8elXoaNGYkpp7y2qcxGG6BzUE=
+github.com/h2non/gock v1.2.0/go.mod h1:tNhoxHYW2W42cYkYb1WqzdbYIieALC99kpYr7rH/BQk=
+github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 h1:2VTzZjLZBgl62/EtslCrtky5vbi9dd7HrQPQIx6wqiw=
+github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542/go.mod h1:Ow0tF8D4Kplbc8s8sSb3V2oUCygFHVp8gC3Dn6U4MNI=
 github.com/hashicorp/consul/api v1.12.0/go.mod h1:6pVBMo0ebnYdt2S3H87XhekM/HHrUoTD2XXb/VrZVy0=
 github.com/hashicorp/consul/sdk v0.8.0/go.mod h1:GBvyrGALthsZObzUGsfgHZQDXjg4lOjagTIwIR1vPms=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
@@ -273,6 +277,8 @@ github.com/kneu-messenger-pigeon/authorizer-client v0.1.1 h1:pXd2UHQ3fPWDOW8LPb0
 github.com/kneu-messenger-pigeon/authorizer-client v0.1.1/go.mod h1:tNdwuaRhX09ewMFOkESyxOASBY7gAzNWgfVDoro3VnQ=
 github.com/kneu-messenger-pigeon/authorizer-client v0.1.2 h1:m+7L22kW3DBtgqjE28JBM7dFfUxXW2wy76TW0jul4Gs=
 github.com/kneu-messenger-pigeon/authorizer-client v0.1.2/go.mod h1:tNdwuaRhX09ewMFOkESyxOASBY7gAzNWgfVDoro3VnQ=
+github.com/kneu-messenger-pigeon/authorizer-client v0.1.3 h1:Bhu+wbZwexfdhrvt8+LXu9cdYkH9zFtuZbHTFlldzgs=
+github.com/kneu-messenger-pigeon/authorizer-client v0.1.3/go.mod h1:tNdwuaRhX09ewMFOkESyxOASBY7gAzNWgfVDoro3VnQ=
 github.com/kneu-messenger-pigeon/client-framework v0.1.0 h1:85717tL+rGaEEkZ+RV+x7UGVqlN0sZVEtGRRujQUwio=
 github.com/kneu-messenger-pigeon/client-framework v0.1.0/go.mod h1:DG8QIFNeaMbggmMpz/8P6UguFq23PZOiUab3M598EwA=
 github.com/kneu-messenger-pigeon/client-framework v0.1.1 h1:CSHGC7KWoieBfJY09eL0JzXKyc9iOfCmqhZ8gWyE5SQ=
@@ -307,6 +313,8 @@ github.com/kneu-messenger-pigeon/score-client v0.1.1 h1:ipnK211UPwTZ7XmG4QVir9os
 github.com/kneu-messenger-pigeon/score-client v0.1.1/go.mod h1:1TZ1fS2mNfqf+VWYNYjqxA8g/EQnwuFcw8G7QzD9THo=
 github.com/kneu-messenger-pigeon/score-client v0.1.2 h1:CurCQsC2ZUDn7sL/u6oYwf8EmWpYI30mKJsNRqgwQ34=
 github.com/kneu-messenger-pigeon/score-client v0.1.2/go.mod h1:1TZ1fS2mNfqf+VWYNYjqxA8g/EQnwuFcw8G7QzD9THo=
+github.com/kneu-messenger-pigeon/score-client v0.1.3 h1:rD9vDfefSTtnL5BL+HZUHjnRapbttvi1qSzenq+0pRg=
+github.com/kneu-messenger-pigeon/score-client v0.1.3/go.mod h1:1TZ1fS2mNfqf+VWYNYjqxA8g/EQnwuFcw8G7QzD9THo=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konsorten/go-windows-terminal-sequences v1.0.3/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/kr/fs v0.1.0/go.mod h1:FFnZGqtBN9Gxj7eW1uZ42v5BccTP0vu6NEaFoC2HwRg=
@@ -350,6 +358,7 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
+github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32/go.mod h1:9wM+0iRr9ahx58uYLpLIr5fm8diHn0JbqRycJi6w0Ms=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pascaldekloe/goe v0.1.0/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
