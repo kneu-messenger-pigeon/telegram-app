@@ -7,6 +7,7 @@ import (
 	framework "github.com/kneu-messenger-pigeon/client-framework"
 	"github.com/kneu-messenger-pigeon/client-framework/models"
 	"github.com/kneu-messenger-pigeon/events"
+	scoreApi "github.com/kneu-messenger-pigeon/score-api"
 	"github.com/kneu-messenger-pigeon/score-client"
 	"gopkg.in/telebot.v3"
 	tele "gopkg.in/telebot.v3"
@@ -133,7 +134,11 @@ func (controller *TelegramController) WelcomeAuthorizedAction(event *events.User
 		},
 	)
 	if err == nil {
-		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.authorizedUserReplyMarkup)
+		_, err = controller.bot.Send(
+			makeChatId(event.ClientUserId),
+			message,
+			controller.markups.authorizedUserReplyMarkup,
+		)
 	}
 
 	return err
@@ -207,15 +212,44 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 	return err
 }
 
-func (controller *TelegramController) ScoreChangedAction(event *events.ScoreChangedEvent) error {
-	chatIds := controller.userRepository.GetClientUserIds(event.StudentId)
+func (controller *TelegramController) ScoreChangedAction(
+	chatId string, previousMessageId string,
+	disciplineScore *scoreApi.DisciplineScore, previousScore *scoreApi.Score,
+) (err error, messageId string) {
+	messageData := models.ScoreChangedMessageData{
+		Discipline: disciplineScore.Discipline,
+		Score:      disciplineScore.Score,
+		Previous:   *previousScore,
+	}
 
-	for _, chatId := range chatIds {
-		err, message := controller.composer.ComposeScoreChanged()
-		if err == nil {
-			_, _ = controller.bot.Send(makeChatId(chatId), message)
+	err, messageText := controller.composer.ComposeScoreChanged(messageData)
+	if err == nil {
+		var message *tele.Message
+		if previousMessageId == "" {
+			disciplineButton := controller.markups.disciplineButton.With(strconv.Itoa(disciplineScore.Discipline.Id))
+			disciplineButton.Text = disciplineScore.Discipline.Name
+
+			replyMarkup := &tele.ReplyMarkup{
+				InlineKeyboard: [][]tele.InlineButton{
+					{
+						*disciplineButton,
+					},
+				},
+			}
+
+			message, err = controller.bot.Send(makeChatId(chatId), messageText, replyMarkup)
+
+		} else {
+			message, err = controller.bot.Edit(tele.StoredMessage{
+				MessageID: previousMessageId,
+				ChatID:    makeInt64(chatId),
+			}, messageText)
+		}
+
+		if message != nil {
+			return err, strconv.Itoa(message.ID)
 		}
 	}
 
-	return nil
+	return err, ""
 }
