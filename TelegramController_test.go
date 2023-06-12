@@ -899,6 +899,60 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 		assert.Equal(t, testTelegramSendMessageId, actualMessageId)
 	})
 
+	t.Run("delete_previous_message", func(t *testing.T) {
+		var previousChatMessageId = "6655443322"
+
+		var lastTelegramErr error
+		testPref.OnError = func(err error, c tele.Context) {
+			lastTelegramErr = err
+		}
+		bot, _ := tele.NewBot(testPref)
+
+		expectedDeleteMessageJson := `{` +
+			`"chat_id":"1238989",` +
+			`"message_id":"6655443322"` +
+			`}`
+
+		deleteMessageSuccessResponse := `{"ok":true,"result":true}`
+
+		thisCasePreviousScore := &scoreApi.Score{
+			FirstScore: floatPointer(2.5),
+		}
+
+		thisCaseMessageData := models.ScoreChangedMessageData{
+			Discipline: disciplineScore.Discipline,
+			Score:      disciplineScore.Score,
+			Previous:   *thisCasePreviousScore,
+		}
+
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+		messageCompose.On("ComposeScoreChanged", thisCaseMessageData).Return(nil, testMessageText)
+
+		defer gock.Off()
+		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
+			Times(1).
+			Post("/deleteMessage").
+			JSON(expectedDeleteMessageJson).
+			Reply(200).
+			JSON(deleteMessageSuccessResponse)
+
+		telegramController := &TelegramController{
+			out:      &bytes.Buffer{},
+			bot:      bot,
+			composer: messageCompose,
+		}
+		telegramController.Init()
+
+		actualErr, actualMessageId := telegramController.ScoreChangedAction(
+			testTelegramUserIdString, previousChatMessageId, disciplineScore, thisCasePreviousScore,
+		)
+		assert.NoError(t, actualErr)
+		assert.NoError(t, lastTelegramErr)
+		assert.True(t, gock.IsDone())
+		assert.Empty(t, actualMessageId)
+	})
+
 	t.Run("error", func(t *testing.T) {
 		var lastTelegramErr error
 		testPref.OnError = func(err error, c tele.Context) {

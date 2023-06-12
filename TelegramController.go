@@ -13,7 +13,6 @@ import (
 	tele "gopkg.in/telebot.v3"
 	"io"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -241,6 +240,12 @@ func (controller *TelegramController) ScoreChangedAction(
 		if previousMessageId == "" {
 			message, err = controller.bot.Send(makeChatId(chatId), messageText, replyMarkup)
 
+		} else if disciplineScore.Score.IsEqual(previousScore) {
+			err = controller.bot.Delete(tele.StoredMessage{
+				MessageID: previousMessageId,
+				ChatID:    makeInt64(chatId),
+			})
+
 		} else {
 			message, err = controller.bot.Edit(tele.StoredMessage{
 				MessageID: previousMessageId,
@@ -254,14 +259,4 @@ func (controller *TelegramController) ScoreChangedAction(
 	}
 
 	return err, ""
-}
-
-func escapeMarkDown(markdownStr string) string {
-	escapeChar := []string{"#", "+", "-", "=", "|", "[", "]", "(", ")", "{", "}", ".", "!"}
-	for _, char := range escapeChar {
-		if strings.Contains(markdownStr, char) {
-			markdownStr = strings.ReplaceAll(markdownStr, char, "\\"+char)
-		}
-	}
-	return markdownStr
 }
