@@ -13,6 +13,7 @@ import (
 	tele "gopkg.in/telebot.v3"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -22,7 +23,7 @@ const listCommand = "/list"
 
 const resetCommand = "/reset"
 
-const TelegramControllerStartedMessage = "Telegram controller started"
+const TelegramControllerStartedMessage = "Telegram controller started\n"
 
 type TelegramController struct {
 	out               io.Writer
@@ -45,6 +46,7 @@ type TelegramController struct {
 }
 
 func (controller *TelegramController) Init() {
+	controller.composer.SetPostFilter(escapeMarkDown)
 	controller.authRedirectUrl = fmt.Sprintf("https://t.me/%s?start", controller.bot.Me.Username)
 
 	controller.markups.disciplineButton = &telebot.InlineButton{
@@ -224,26 +226,26 @@ func (controller *TelegramController) ScoreChangedAction(
 
 	err, messageText := controller.composer.ComposeScoreChanged(messageData)
 	if err == nil {
+		disciplineButton := controller.markups.disciplineButton.With(strconv.Itoa(disciplineScore.Discipline.Id))
+		disciplineButton.Text = disciplineScore.Discipline.Name
+
+		replyMarkup := &tele.ReplyMarkup{
+			InlineKeyboard: [][]tele.InlineButton{
+				{
+					*disciplineButton,
+				},
+			},
+		}
+
 		var message *tele.Message
 		if previousMessageId == "" {
-			disciplineButton := controller.markups.disciplineButton.With(strconv.Itoa(disciplineScore.Discipline.Id))
-			disciplineButton.Text = disciplineScore.Discipline.Name
-
-			replyMarkup := &tele.ReplyMarkup{
-				InlineKeyboard: [][]tele.InlineButton{
-					{
-						*disciplineButton,
-					},
-				},
-			}
-
 			message, err = controller.bot.Send(makeChatId(chatId), messageText, replyMarkup)
 
 		} else {
 			message, err = controller.bot.Edit(tele.StoredMessage{
 				MessageID: previousMessageId,
 				ChatID:    makeInt64(chatId),
-			}, messageText)
+			}, messageText, replyMarkup)
 		}
 
 		if message != nil {
@@ -252,4 +254,14 @@ func (controller *TelegramController) ScoreChangedAction(
 	}
 
 	return err, ""
+}
+
+func escapeMarkDown(markdownStr string) string {
+	escapeChar := []string{"#", "+", "-", "=", "|", "[", "]", "(", ")", "{", "}", ".", "!"}
+	for _, char := range escapeChar {
+		if strings.Contains(markdownStr, char) {
+			markdownStr = strings.ReplaceAll(markdownStr, char, "\\"+char)
+		}
+	}
+	return markdownStr
 }

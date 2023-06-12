@@ -13,6 +13,7 @@ import (
 	scoreApi "github.com/kneu-messenger-pigeon/score-api"
 	"github.com/kneu-messenger-pigeon/score-client"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	tele "gopkg.in/telebot.v3"
 	"io"
 	"net/http"
@@ -78,9 +79,13 @@ func TestTelegramController_NotPrivateChat(t *testing.T) {
 		defer gock.Off()
 		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).Times(0)
 
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+
 		telegramController := &TelegramController{
-			out: &bytes.Buffer{},
-			bot: bot,
+			out:      &bytes.Buffer{},
+			bot:      bot,
+			composer: messageCompose,
 		}
 		telegramController.Init()
 
@@ -111,11 +116,15 @@ func TestTelegramController_ResetAction(t *testing.T) {
 		defer gock.Off()
 		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).Times(0)
 
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+
 		telegramController := &TelegramController{
 			out:               &bytes.Buffer{},
 			bot:               bot,
 			userRepository:    userRepository,
 			userLogoutHandler: userLogoutHandler,
+			composer:          messageCompose,
 		}
 		telegramController.Init()
 
@@ -144,6 +153,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, nil)
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeWelcomeAnonymousMessage", testAuthUrl).Return(nil, testMessageText)
 
 		defer gock.Off()
@@ -186,6 +196,9 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		authorizerClient := authorizerMocks.NewClientInterface(t)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return("", expectedError)
 
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+
 		defer gock.Off()
 		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
 			Times(0)
@@ -194,6 +207,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		telegramController := &TelegramController{
 			out:              out,
 			bot:              bot,
+			composer:         messageCompose,
 			userRepository:   userRepository,
 			authorizerClient: authorizerClient,
 		}
@@ -239,6 +253,7 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(nil, testMessageText)
 
 		defer gock.Off()
@@ -280,6 +295,7 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(nil, testMessageText)
 
 		defer gock.Off()
@@ -332,6 +348,7 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 		bot, _ := tele.NewBot(testPref)
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeLogoutFinishedMessage").Return(nil, testMessageText)
 
 		defer gock.Off()
@@ -375,6 +392,7 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 		bot, _ := tele.NewBot(testPref)
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeLogoutFinishedMessage").Return(expectedError, "")
 
 		defer gock.Off()
@@ -467,6 +485,7 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 		}
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeDisciplinesListMessage", messageData).Return(nil, testMessageText)
 
 		bodyRegExp, _ := regexp.Compile(expectedMessage)
@@ -547,6 +566,7 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 		}
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeDisciplinesListMessage", messageData).Return(expectedError, "")
 
 		defer gock.Off()
@@ -631,6 +651,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		}
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeDisciplineScoresMessage", messageData).Return(nil, testMessageText)
 
 		bodyRegExp, _ := regexp.Compile(expectedMessage)
@@ -715,6 +736,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		}
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeDisciplineScoresMessage", messageData).Return(expectedError, "")
 
 		defer gock.Off()
@@ -802,6 +824,7 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 		bot, _ := tele.NewBot(testPref)
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
 
 		defer gock.Off()
@@ -844,7 +867,12 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 			`"text":"test-message ! 0101"` +
 			`}`
 
+		disciplineButtonJson = strings.Replace(disciplineButtonJson, `"`, `\"`, -1)
+
+		expectedEditMessageJson = strings.Replace(expectedEditMessageJson, insertBefore, replyMarkupJson+insertBefore, 1)
+
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
 
 		defer gock.Off()
@@ -879,6 +907,7 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 		bot, _ := tele.NewBot(testPref)
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
 
 		defer gock.Off()

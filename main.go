@@ -34,7 +34,7 @@ func runApp(out io.Writer) error {
 		Poller: &tele.LongPoller{
 			Timeout: time.Second * 30,
 		},
-		ParseMode: tele.ModeMarkdown,
+		ParseMode: tele.ModeMarkdownV2,
 	}
 
 	if err == nil {
