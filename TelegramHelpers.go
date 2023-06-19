@@ -22,10 +22,17 @@ func makeInt64(input string) int64 {
 }
 
 func escapeMarkDown(markdownStr string) string {
-	escapeChar := []string{"#", "+", "-", "=", "|", "[", "]", "(", ")", "{", "}", ".", "!"}
+	// not "[", "]", "(", ")", - it is link
+	escapeChar := []string{"#", "+", "-", "=", "|", "{", "}", ".", "!"}
 	for _, char := range escapeChar {
 		if strings.Contains(markdownStr, char) {
 			markdownStr = strings.ReplaceAll(markdownStr, char, "\\"+char)
+		}
+	}
+	escapeWithSpaceChar := []string{"("}
+	for _, char := range escapeWithSpaceChar {
+		if strings.Contains(markdownStr, " "+char) {
+			markdownStr = strings.ReplaceAll(markdownStr, " "+char, " \\"+char)
 		}
 	}
 	return markdownStr
