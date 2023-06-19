@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/kneu-messenger-pigeon/client-framework/models"
 	tele "gopkg.in/telebot.v3"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -21,19 +22,20 @@ func makeInt64(input string) int64 {
 	return output
 }
 
+/** @see https://regex101.com/r/5zFBzu/1 */
+var unEscapeMarkDownLinks = regexp.MustCompile(`(?m)\\\[([^\[\]]*)\\\]\\\(([^\)]*)\\\)`)
+var unEscapeMarkDownLinksSubstitution = "[$1]($2)"
+
 func escapeMarkDown(markdownStr string) string {
-	// not "[", "]", "(", ")", - it is link
-	escapeChar := []string{"#", "+", "-", "=", "|", "{", "}", ".", "!"}
+	escapeChar := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
 	for _, char := range escapeChar {
 		if strings.Contains(markdownStr, char) {
 			markdownStr = strings.ReplaceAll(markdownStr, char, "\\"+char)
 		}
 	}
-	escapeWithSpaceChar := []string{"("}
-	for _, char := range escapeWithSpaceChar {
-		if strings.Contains(markdownStr, " "+char) {
-			markdownStr = strings.ReplaceAll(markdownStr, " "+char, " \\"+char)
-		}
-	}
+
+	// drop escaping from inline links
+	markdownStr = unEscapeMarkDownLinks.ReplaceAllString(markdownStr, unEscapeMarkDownLinksSubstitution)
+
 	return markdownStr
 }
