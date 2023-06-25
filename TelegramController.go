@@ -237,14 +237,16 @@ func (controller *TelegramController) ScoreChangedAction(
 		}
 
 		var message *tele.Message
-		if previousMessageId == "" {
-			message, err = controller.bot.Send(makeChatId(chatId), messageText, replyMarkup)
+		if disciplineScore.Score.IsEqual(previousScore) {
+			if previousMessageId != "" {
+				err = controller.bot.Delete(tele.StoredMessage{
+					MessageID: previousMessageId,
+					ChatID:    makeInt64(chatId),
+				})
+			}
 
-		} else if disciplineScore.Score.IsEqual(previousScore) {
-			err = controller.bot.Delete(tele.StoredMessage{
-				MessageID: previousMessageId,
-				ChatID:    makeInt64(chatId),
-			})
+		} else if previousMessageId == "" {
+			message, err = controller.bot.Send(makeChatId(chatId), messageText, replyMarkup)
 
 		} else {
 			message, err = controller.bot.Edit(tele.StoredMessage{
