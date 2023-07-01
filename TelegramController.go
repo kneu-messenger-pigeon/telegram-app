@@ -121,7 +121,7 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 
 	err, message := controller.composer.ComposeWelcomeAnonymousMessage(authUrl)
 	if err == nil {
-		err = c.Send(message)
+		err = c.Reply(message)
 	}
 	return err
 }
@@ -181,7 +181,7 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 			},
 		)
 		if err == nil {
-			err = c.Send(message, &telebot.SendOptions{
+			err = c.Reply(message, &telebot.SendOptions{
 				DisableWebPagePreview: true,
 			}, replyMarkup)
 		}
@@ -206,7 +206,9 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 		)
 
 		if err == nil {
-			err = c.Send(message, controller.markups.disciplineScoreReplyMarkup)
+			err = c.Reply(message, controller.markups.disciplineScoreReplyMarkup)
+		} else {
+			controller.removeReplyMarkup(c.Message())
 		}
 	}
 
@@ -261,4 +263,13 @@ func (controller *TelegramController) ScoreChangedAction(
 	}
 
 	return err, ""
+}
+
+func (controller *TelegramController) removeReplyMarkup(message tele.Editable) {
+	if message != nil {
+		_, err := controller.bot.EditReplyMarkup(message, nil)
+		if err != nil {
+			_, _ = fmt.Fprintf(controller.out, "Failed to remove reply markup: %v\n", err)
+		}
+	}
 }

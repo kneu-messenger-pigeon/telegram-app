@@ -29,6 +29,7 @@ const testTelegramToken = "_TEST-token_"
 const testTelegramUserId = int64(1238989)
 const testTelegramUserIdString = "1238989"
 const testTelegramSendMessageId = "99123456"
+const testTelegramIncomingMessageId = 123
 
 var testPref = tele.Settings{
 	Token:   testTelegramToken,
@@ -43,6 +44,7 @@ var testPref = tele.Settings{
 
 func getTestSampleMessage() tele.Message {
 	return tele.Message{
+		ID:   testTelegramIncomingMessageId,
 		Text: "",
 		Sender: &tele.User{
 			ID: testTelegramUserId,
@@ -65,6 +67,8 @@ var sampleStudent = &models.Student{
 var testMessageText = "test-message ! 0101"
 
 var sendMessageRequest = `{"chat_id":"` + testTelegramUserIdString + `","parse_mode":"Markdown","text":"test-message ! 0101"}`
+var replyMessageRequest = `{"chat_id":"` + testTelegramUserIdString + `","parse_mode":"Markdown","reply_to_message_id":"` +
+	strconv.Itoa(testTelegramIncomingMessageId) + `","text":"test-message ! 0101"}`
 
 var sendMessageSuccessResponse = `{"ok":true,"result":{"message_id":` + testTelegramSendMessageId + `}}`
 
@@ -160,7 +164,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
 			Times(1).
 			Post("/sendMessage").
-			JSON(sendMessageRequest).
+			JSON(replyMessageRequest).
 			Reply(200).
 			JSON(sendMessageSuccessResponse)
 
@@ -427,11 +431,11 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 }
 
 func TestTelegramController_DisciplinesListAction(t *testing.T) {
-	expectedMessage := sendMessageRequest
+	expectedMessage := replyMessageRequest
 	var insertBefore string
 
 	replyMarkupJson := `"reply_markup":"{\\"inline_keyboard\\":(.*)}",`
-	insertBefore = `"text":`
+	insertBefore = `"reply_to_message_id":`
 	expectedMessage = strings.Replace(expectedMessage, insertBefore, replyMarkupJson+insertBefore, 1)
 
 	disableWebPagePreview := `"disable_web_page_preview":"true",`
@@ -597,11 +601,11 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 	disciplineId := 199
 
-	expectedMessage := sendMessageRequest
+	expectedMessage := replyMessageRequest
 	var insertBefore string
 
 	replyMarkupJson := `"reply_markup":"{\\"inline_keyboard\\":(.*)}",`
-	insertBefore = `"text":`
+	insertBefore = `"reply_to_message_id":`
 	expectedMessage = strings.Replace(expectedMessage, insertBefore, replyMarkupJson+insertBefore, 1)
 
 	discipline := scoreApi.DisciplineScoreResult{
@@ -742,7 +746,12 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		defer gock.Off()
 		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
 			Post("/sendMessage").
-			Times(0)
+			Times(0).
+			Post("/editMessageReplyMarkup").
+			JSON(`{"chat_id":"` + testTelegramUserIdString + `","message_id":"` + strconv.Itoa(testTelegramIncomingMessageId) + `","reply_markup":"{}"}`).
+			Times(1).
+			Reply(200).
+			JSON(`{"ok":true,"result":{"message_id":123}}`)
 
 		telegramController := &TelegramController{
 			out:            &bytes.Buffer{},
