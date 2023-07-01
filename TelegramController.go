@@ -121,7 +121,7 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 
 	err, message := controller.composer.ComposeWelcomeAnonymousMessage(authUrl)
 	if err == nil {
-		err = c.Reply(message)
+		err = c.Send(message)
 	}
 	return err
 }
@@ -181,7 +181,7 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 			},
 		)
 		if err == nil {
-			err = c.Reply(message, &telebot.SendOptions{
+			err = c.Send(message, &telebot.SendOptions{
 				DisableWebPagePreview: true,
 			}, replyMarkup)
 		}
@@ -206,7 +206,7 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 		)
 
 		if err == nil {
-			err = c.Reply(message, controller.markups.disciplineScoreReplyMarkup)
+			err = c.Send(message, controller.markups.disciplineScoreReplyMarkup)
 		} else {
 			controller.removeReplyMarkup(c.Message())
 		}

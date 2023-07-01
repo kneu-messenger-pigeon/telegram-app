@@ -67,8 +67,6 @@ var sampleStudent = &models.Student{
 var testMessageText = "test-message ! 0101"
 
 var sendMessageRequest = `{"chat_id":"` + testTelegramUserIdString + `","parse_mode":"Markdown","text":"test-message ! 0101"}`
-var replyMessageRequest = `{"chat_id":"` + testTelegramUserIdString + `","parse_mode":"Markdown","reply_to_message_id":"` +
-	strconv.Itoa(testTelegramIncomingMessageId) + `","text":"test-message ! 0101"}`
 
 var sendMessageSuccessResponse = `{"ok":true,"result":{"message_id":` + testTelegramSendMessageId + `}}`
 
@@ -164,7 +162,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
 			Times(1).
 			Post("/sendMessage").
-			JSON(replyMessageRequest).
+			JSON(sendMessageRequest).
 			Reply(200).
 			JSON(sendMessageSuccessResponse)
 
@@ -431,11 +429,11 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 }
 
 func TestTelegramController_DisciplinesListAction(t *testing.T) {
-	expectedMessage := replyMessageRequest
+	expectedMessage := sendMessageRequest
 	var insertBefore string
 
 	replyMarkupJson := `"reply_markup":"{\\"inline_keyboard\\":(.*)}",`
-	insertBefore = `"reply_to_message_id":`
+	insertBefore = `"text":`
 	expectedMessage = strings.Replace(expectedMessage, insertBefore, replyMarkupJson+insertBefore, 1)
 
 	disableWebPagePreview := `"disable_web_page_preview":"true",`
@@ -601,11 +599,11 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 	disciplineId := 199
 
-	expectedMessage := replyMessageRequest
+	expectedMessage := sendMessageRequest
 	var insertBefore string
 
 	replyMarkupJson := `"reply_markup":"{\\"inline_keyboard\\":(.*)}",`
-	insertBefore = `"reply_to_message_id":`
+	insertBefore = `"text":`
 	expectedMessage = strings.Replace(expectedMessage, insertBefore, replyMarkupJson+insertBefore, 1)
 
 	discipline := scoreApi.DisciplineScoreResult{
