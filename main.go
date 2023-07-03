@@ -72,6 +72,5 @@ func handleExitError(errStream io.Writer, err error) int {
 	if err != nil {
 		return ExitCodeMainError
 	}
-
 	return 0
 }
