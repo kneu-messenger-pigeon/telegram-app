@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	framework "github.com/kneu-messenger-pigeon/client-framework"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"runtime"
@@ -39,8 +40,9 @@ func TestRunApp(t *testing.T) {
 		err := runApp(&out)
 		running = false
 
-		runtime.Gosched()
-		runtime.Gosched()
+		for i := 0; i < framework.ScoreChangedEventProcessorCount+5; i++ {
+			runtime.Gosched()
+		}
 		time.Sleep(time.Millisecond * 500)
 		outputString := out.String()
 		fmt.Println(outputString)
