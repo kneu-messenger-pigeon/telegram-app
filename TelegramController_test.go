@@ -730,16 +730,10 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
 		scoreClient := score.NewMockClientInterface(t)
-		scoreClient.On("GetStudentDiscipline", sampleStudent.Id, disciplineId).Return(discipline, nil)
-
-		messageData := models.DisciplinesScoresMessageData{
-			StudentMessageData: models.NewStudentMessageData(sampleStudent),
-			Discipline:         discipline,
-		}
+		scoreClient.On("GetStudentDiscipline", sampleStudent.Id, disciplineId).Return(scoreApi.DisciplineScoreResult{}, expectedError)
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
 		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
-		messageCompose.On("ComposeDisciplineScoresMessage", messageData).Return(expectedError, "")
 
 		defer gock.Off()
 		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
@@ -1036,6 +1030,49 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 			testTelegramUserIdString, "", disciplineScore, previousScore,
 		)
 		assert.Error(t, actualErr)
+		assert.NoError(t, lastTelegramErr)
+		assert.True(t, gock.IsDone())
+		assert.Empty(t, actualMessageId)
+	})
+
+	t.Run("error-bot-blocked-by-user", func(t *testing.T) {
+		var lastTelegramErr error
+		testPref.OnError = func(err error, c tele.Context) {
+			lastTelegramErr = err
+		}
+		bot, _ := tele.NewBot(testPref)
+
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+		messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
+
+		userLogoutHandler := mocks.NewUserLogoutHandlerInterface(t)
+		userLogoutHandler.On("Handle", testTelegramUserIdString).Return(nil).Once()
+
+		defer gock.Off()
+		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
+			Times(1).
+			Post("/sendMessage").
+			JSON(expectedMessage).
+			Reply(400).
+			JSON(`{
+			  "ok": false,
+			  "error_code": 403,
+			  "description": "Forbidden: bot was blocked by the user"
+			}`)
+
+		telegramController := &TelegramController{
+			out:               &bytes.Buffer{},
+			bot:               bot,
+			userLogoutHandler: userLogoutHandler,
+			composer:          messageCompose,
+		}
+		telegramController.Init()
+
+		actualErr, actualMessageId := telegramController.ScoreChangedAction(
+			testTelegramUserIdString, "", disciplineScore, previousScore,
+		)
+		assert.NoError(t, actualErr)
 		assert.NoError(t, lastTelegramErr)
 		assert.True(t, gock.IsDone())
 		assert.Empty(t, actualMessageId)

@@ -197,7 +197,9 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 
 	discipline, err := controller.scoreClient.GetStudentDiscipline(student.Id, disciplineId)
 
-	if err == nil {
+	if err != nil {
+		controller.removeReplyMarkup(c.Message())
+	} else {
 		err, message = controller.composer.ComposeDisciplineScoresMessage(
 			models.DisciplinesScoresMessageData{
 				StudentMessageData: models.NewStudentMessageData(student),
@@ -207,8 +209,6 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 
 		if err == nil {
 			err = c.Send(message, controller.markups.disciplineScoreReplyMarkup)
-		} else {
-			controller.removeReplyMarkup(c.Message())
 		}
 	}
 
@@ -238,24 +238,27 @@ func (controller *TelegramController) ScoreChangedAction(
 			},
 		}
 
+		chatIdInt64 := makeInt64(chatId)
 		var message *tele.Message
 		if disciplineScore.Score.IsEqual(previousScore) {
 			if previousMessageId != "" {
 				err = controller.bot.Delete(tele.StoredMessage{
 					MessageID: previousMessageId,
-					ChatID:    makeInt64(chatId),
+					ChatID:    chatIdInt64,
 				})
 			}
 
 		} else if previousMessageId == "" {
-			message, err = controller.bot.Send(makeChatId(chatId), messageText, replyMarkup)
+			message, err = controller.bot.Send(tele.ChatID(chatIdInt64), messageText, replyMarkup)
 
 		} else {
 			message, err = controller.bot.Edit(tele.StoredMessage{
 				MessageID: previousMessageId,
-				ChatID:    makeInt64(chatId),
+				ChatID:    chatIdInt64,
 			}, messageText, replyMarkup)
 		}
+
+		err = controller.handleTelegramError(err, chatIdInt64)
 
 		if message != nil {
 			return err, strconv.Itoa(message.ID)
@@ -263,6 +266,18 @@ func (controller *TelegramController) ScoreChangedAction(
 	}
 
 	return err, ""
+}
+
+func (controller *TelegramController) handleTelegramError(err error, chatId int64) error {
+	botError, _ := err.(*telebot.Error)
+	switch botError {
+	case tele.ErrChatNotFound, tele.ErrBlockedByUser, tele.ErrUserIsDeactivated:
+		fmt.Printf("Got error %v - do user logout to unregister chat\n", botError)
+		// rewrite error to result of userLogoutHandler.Handle
+		return controller.userLogoutHandler.Handle(strconv.FormatInt(chatId, 10))
+	}
+
+	return err
 }
 
 func (controller *TelegramController) removeReplyMarkup(message tele.Editable) {

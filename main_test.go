@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
@@ -38,6 +39,8 @@ func TestRunApp(t *testing.T) {
 		err := runApp(&out)
 		running = false
 
+		runtime.Gosched()
+		runtime.Gosched()
 		time.Sleep(time.Millisecond * 500)
 		outputString := out.String()
 		fmt.Println(outputString)
