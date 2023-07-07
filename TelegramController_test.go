@@ -742,11 +742,16 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 			Post("/editMessageReplyMarkup").
 			JSON(`{"chat_id":"` + testTelegramUserIdString + `","message_id":"` + strconv.Itoa(testTelegramIncomingMessageId) + `","reply_markup":"{}"}`).
 			Times(1).
-			Reply(200).
-			JSON(`{"ok":true,"result":{"message_id":123}}`)
+			Reply(400).
+			JSON(`{
+			  "ok": false,
+			  "error_code": 400,
+			  "description": "Bad Request: message is not modified"
+			}`)
 
+		out := &bytes.Buffer{}
 		telegramController := &TelegramController{
-			out:            &bytes.Buffer{},
+			out:            out,
 			bot:            bot,
 			scoreClient:    scoreClient,
 			composer:       messageCompose,
@@ -770,6 +775,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		assert.Error(t, lastTelegramErr)
 		assert.True(t, gock.IsDone())
 		assert.Equal(t, expectedError, lastTelegramErr)
+		assert.Contains(t, out.String(), `Failed to remove reply markup: telegram: message is not modified (400)`)
 	})
 }
 
