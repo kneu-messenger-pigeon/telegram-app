@@ -57,12 +57,14 @@ func (controller *TelegramController) Init() {
 	}
 
 	controller.markups.disciplineScoreReplyMarkup = &tele.ReplyMarkup{
+		ResizeKeyboard: true,
 		InlineKeyboard: [][]tele.InlineButton{
 			{*controller.markups.listButton},
 		},
 	}
 
 	controller.markups.authorizedUserReplyMarkup = &telebot.ReplyMarkup{
+		ResizeKeyboard: true,
 		ReplyKeyboard: [][]tele.ReplyButton{
 			{
 				{Text: listCommand + " Мої результати"},
