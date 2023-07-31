@@ -794,7 +794,7 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 		messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
 
 		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
+		NewGock().
 			Times(1).
 			Post("/sendMessage").
 			JSON(expectedSendMessage).
@@ -824,12 +824,8 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 		messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
 
 		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
-			Times(1).
-			Post("/editMessageText").
-			JSON(thisCaseExpectedMessageSend).
-			Reply(200).
-			JSON(sendMessageSuccessResponse)
+		NewGock().Times(1).Post("/editMessageText").JSON(thisCaseExpectedMessageSend).
+			Reply(200).JSON(sendMessageSuccessResponse)
 
 		actualErr, actualMessageId := telegramController.ScoreChangedAction(
 			testTelegramUserIdString, previousChatMessageId, disciplineScore, previousScore,
