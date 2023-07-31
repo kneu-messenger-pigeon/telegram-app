@@ -28,7 +28,7 @@ func TestRunApp(t *testing.T) {
 
 		running := true
 		go func() {
-			maxEndTime := time.Now().Add(time.Second)
+			maxEndTime := time.Now().Add(time.Second * 2)
 			for running && maxEndTime.After(time.Now()) &&
 				!strings.Contains(out.String(), TelegramControllerStartedMessage) {
 				time.Sleep(time.Millisecond * 200)

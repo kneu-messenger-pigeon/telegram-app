@@ -234,6 +234,7 @@ func (controller *TelegramController) ScoreChangedAction(
 		disciplineButton.Text = disciplineScore.Discipline.Name
 
 		replyMarkup := &tele.ReplyMarkup{
+			ResizeKeyboard: true,
 			InlineKeyboard: [][]tele.InlineButton{
 				{
 					*disciplineButton,
