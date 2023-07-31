@@ -101,6 +101,31 @@ func TestTelegramController_NotPrivateChat(t *testing.T) {
 	})
 }
 
+func TestTelegramController_Init(t *testing.T) {
+	var lastTelegramErr error
+	testPref.OnError = func(err error, c tele.Context) {
+		lastTelegramErr = err
+	}
+	bot, _ := tele.NewBot(testPref)
+
+	defer gock.Off()
+	gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).Times(0)
+
+	messageCompose := mocks.NewMessageComposerInterface(t)
+	messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+
+	telegramController := &TelegramController{
+		out:      &bytes.Buffer{},
+		bot:      bot,
+		composer: messageCompose,
+	}
+	telegramController.Init()
+
+	assert.NotEmpty(t, telegramController.markups.logoutUserReplyMarkup)
+	assert.True(t, strings.HasPrefix(telegramController.markups.logoutUserReplyMarkup.ReplyKeyboard[0][0].Text, startCommand))
+	assert.NoError(t, lastTelegramErr)
+}
+
 func TestTelegramController_ResetAction(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		var lastTelegramErr error
@@ -333,15 +358,15 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 }
 
 func TestTelegramController_LogoutFinishedAction(t *testing.T) {
-	replyMarkupJson := strings.Replace(
-		regexp.QuoteMeta(`"reply_markup":"{\"keyboard\":[[{\"text\":\"\"}]]}",`),
-		`\\"text\\":\\"\\"`,
-		`\\"text\\":\\"`+startCommand+`.*\\"`,
-		1,
-	)
-	insertBefore := `"text":`
-	expectedMessage := strings.Replace(sendMessageRequest, insertBefore, replyMarkupJson+insertBefore, 1)
-
+	/*	replyMarkupJson := strings.Replace(
+				regexp.QuoteMeta(`"reply_markup":"{\"keyboard\":[[{\"text\":\"\"}]]}",`),
+				`\\"text\\":\\"\\"`,
+				`\\"text\\":\\"`+startCommand+`.*\\"`,
+				1,
+			)
+		//	insertBefore := `"text":`
+		//	expectedMessage := strings.Replace(sendMessageRequest, insertBefore, replyMarkupJson+insertBefore, 1)
+	*/
 	t.Run("success", func(t *testing.T) {
 		var lastTelegramErr error
 		testPref.OnError = func(err error, c tele.Context) {
@@ -353,20 +378,28 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 		messageCompose.On("ComposeLogoutFinishedMessage").Return(nil, testMessageText)
 
-		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
-			Times(1).
-			Post("/sendMessage").
-			JSON(expectedMessage).
-			Reply(200).
-			JSON(sendMessageSuccessResponse)
-
 		telegramController := &TelegramController{
 			out:      &bytes.Buffer{},
 			bot:      bot,
 			composer: messageCompose,
 		}
 		telegramController.Init()
+
+		replyMarkupJson, _ := json.Marshal(telegramController.markups.logoutUserReplyMarkup)
+		expectedJson := map[string]interface{}{
+			"chat_id":      testTelegramUserIdString,
+			"parse_mode":   "Markdown",
+			"reply_markup": string(replyMarkupJson),
+			"text":         "test-message ! 0101",
+		}
+
+		defer gock.Off()
+		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
+			Times(1).
+			Post("/sendMessage").
+			JSON(expectedJson).
+			Reply(200).
+			JSON(sendMessageSuccessResponse)
 
 		event := &events.UserAuthorizedEvent{
 			Client:       "test",
@@ -1087,4 +1120,12 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 
 func floatPointer(value float32) *float32 {
 	return &value
+}
+
+func PrintBodyMatcher(req *http.Request, ereq *gock.Request) (bool, error) {
+	fmt.Println(req.URL.String())
+	bodyBytes, _ := io.ReadAll(req.Body)
+	fmt.Println(string(bodyBytes))
+
+	return true, nil
 }

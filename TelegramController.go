@@ -71,6 +71,7 @@ func (controller *TelegramController) Init() {
 	}
 
 	controller.markups.logoutUserReplyMarkup = &telebot.ReplyMarkup{
+		ResizeKeyboard: true,
 		ReplyKeyboard: [][]tele.ReplyButton{
 			{
 				{Text: startCommand + " Запустити!"},
