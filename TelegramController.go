@@ -57,7 +57,7 @@ func (controller *TelegramController) Init() {
 	}
 
 	controller.markups.disciplineScoreReplyMarkup = &tele.ReplyMarkup{
-		ResizeKeyboard: true,
+		OneTimeKeyboard: true,
 		InlineKeyboard: [][]tele.InlineButton{
 			{*controller.markups.listButton},
 		},
@@ -162,7 +162,8 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 	disciplines, err := controller.scoreClient.GetStudentDisciplines(student.Id)
 	if err == nil {
 		replyMarkup := &tele.ReplyMarkup{
-			InlineKeyboard: make([][]tele.InlineButton, len(disciplines)),
+			OneTimeKeyboard: true,
+			InlineKeyboard:  make([][]tele.InlineButton, len(disciplines)),
 		}
 
 		var disciplineButton *tele.InlineButton
@@ -184,9 +185,7 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 			},
 		)
 		if err == nil {
-			err = c.Send(message, &telebot.SendOptions{
-				DisableWebPagePreview: true,
-			}, replyMarkup)
+			err = c.Send(message, replyMarkup)
 		}
 	}
 
@@ -234,7 +233,7 @@ func (controller *TelegramController) ScoreChangedAction(
 		disciplineButton.Text = disciplineScore.Discipline.Name
 
 		replyMarkup := &tele.ReplyMarkup{
-			ResizeKeyboard: true,
+			OneTimeKeyboard: true,
 			InlineKeyboard: [][]tele.InlineButton{
 				{
 					*disciplineButton,

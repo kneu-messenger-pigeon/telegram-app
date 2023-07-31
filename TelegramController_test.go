@@ -17,7 +17,6 @@ import (
 	tele "gopkg.in/telebot.v3"
 	"io"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -66,8 +65,6 @@ var sampleStudent = &models.Student{
 
 var testMessageText = "test-message ! 0101"
 
-var sendMessageRequest = `{"chat_id":"` + testTelegramUserIdString + `","parse_mode":"Markdown","text":"test-message ! 0101"}`
-
 var sendMessageSuccessResponse = map[string]interface{}{
 	"ok": true,
 	"result": map[string]interface{}{
@@ -75,47 +72,17 @@ var sendMessageSuccessResponse = map[string]interface{}{
 	},
 }
 
-func TestTelegramController_NotPrivateChat(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		var lastTelegramErr error
-		testPref.OnError = func(err error, c tele.Context) {
-			lastTelegramErr = err
-		}
-		bot, _ := tele.NewBot(testPref)
-
-		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).Times(0)
-
-		messageCompose := mocks.NewMessageComposerInterface(t)
-		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
-
-		telegramController := &TelegramController{
-			out:      &bytes.Buffer{},
-			bot:      bot,
-			composer: messageCompose,
-		}
-		telegramController.Init()
-
-		message := getTestSampleMessage()
-		message.Text = startCommand
-		message.Chat.Type = tele.ChatGroup
-
-		bot.ProcessUpdate(tele.Update{Message: &message})
-		assert.NoError(t, lastTelegramErr)
-		assert.True(t, gock.IsDone())
-	})
-}
+var lastTelegramErr error
 
 func NewGock() *gock.Request {
 	return gock.New(testTelegramURL + "/" + "bot" + testTelegramToken)
 }
 
-func CreateTelegramController(t *testing.T) (telegramController *TelegramController, bot *tele.Bot) {
-	var lastTelegramErr error
+func CreateTelegramController(t *testing.T) (telegramController *TelegramController) {
 	testPref.OnError = func(err error, c tele.Context) {
 		lastTelegramErr = err
 	}
-	bot, _ = tele.NewBot(testPref)
+	bot, _ := tele.NewBot(testPref)
 
 	defer gock.Off()
 	NewGock().Times(0)
@@ -143,8 +110,31 @@ func CreateTelegramController(t *testing.T) (telegramController *TelegramControl
 	return
 }
 
+func GetEndClearLastTelegramError() error {
+	err := lastTelegramErr
+	lastTelegramErr = nil
+	return err
+}
+
+func TestTelegramController_NotPrivateChat(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		telegramController := CreateTelegramController(t)
+
+		defer gock.Off()
+		NewGock().Times(0)
+
+		message := getTestSampleMessage()
+		message.Text = startCommand
+		message.Chat.Type = tele.ChatGroup
+
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
+		assert.NoError(t, lastTelegramErr)
+		assert.True(t, gock.IsDone())
+	})
+}
+
 func TestTelegramController_Init(t *testing.T) {
-	telegramController, _ := CreateTelegramController(t)
+	telegramController := CreateTelegramController(t)
 
 	markups := &telegramController.markups
 
@@ -167,37 +157,21 @@ func TestTelegramController_Init(t *testing.T) {
 
 func TestTelegramController_ResetAction(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		var lastTelegramErr error
-		testPref.OnError = func(err error, c tele.Context) {
-			lastTelegramErr = err
-		}
-		bot, _ := tele.NewBot(testPref)
+		telegramController := CreateTelegramController(t)
 
-		userLogoutHandler := mocks.NewUserLogoutHandlerInterface(t)
+		userLogoutHandler := telegramController.userLogoutHandler.(*mocks.UserLogoutHandlerInterface)
 		userLogoutHandler.On("Handle", testTelegramUserIdString).Return(nil).Once()
 
-		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
 		defer gock.Off()
 		NewGock().Times(0)
 
-		messageCompose := mocks.NewMessageComposerInterface(t)
-		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
-
-		telegramController := &TelegramController{
-			out:               &bytes.Buffer{},
-			bot:               bot,
-			userRepository:    userRepository,
-			userLogoutHandler: userLogoutHandler,
-			composer:          messageCompose,
-		}
-		telegramController.Init()
-
 		message := getTestSampleMessage()
 		message.Text = resetCommand
 
-		bot.ProcessUpdate(tele.Update{Message: &message})
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
 		assert.NoError(t, lastTelegramErr)
 		assert.True(t, gock.IsDone())
 	})
@@ -207,85 +181,58 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		testAuthUrl := "http://auth.kneu.test/oauth"
 
-		var lastTelegramErr error
-		testPref.OnError = func(err error, c tele.Context) {
-			lastTelegramErr = err
-		}
-		bot, _ := tele.NewBot(testPref)
-		userRepository := mocks.NewUserRepositoryInterface(t)
+		telegramController := CreateTelegramController(t)
+
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
-		authorizerClient := authorizerMocks.NewClientInterface(t)
+		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, nil)
 
-		messageCompose := mocks.NewMessageComposerInterface(t)
-		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
 		messageCompose.On("ComposeWelcomeAnonymousMessage", testAuthUrl).Return(nil, testMessageText)
 
-		defer gock.Off()
-		NewGock().
-			Times(1).
-			Post("/sendMessage").
-			JSON(sendMessageRequest).
-			Reply(200).
-			JSON(sendMessageSuccessResponse)
-
-		telegramController := &TelegramController{
-			out:              &bytes.Buffer{},
-			bot:              bot,
-			composer:         messageCompose,
-			userRepository:   userRepository,
-			authorizerClient: authorizerClient,
+		sendMessageRequest := map[string]interface{}{
+			"chat_id":    testTelegramUserIdString,
+			"parse_mode": "Markdown",
+			"text":       testMessageText,
 		}
-		telegramController.Init()
+
+		defer gock.Off()
+		NewGock().Times(1).Post("/sendMessage").JSON(sendMessageRequest).
+			Reply(200).JSON(sendMessageSuccessResponse)
 
 		message := getTestSampleMessage()
-		message.Text = "/start"
+		message.Text = startCommand
 
-		bot.ProcessUpdate(tele.Update{Message: &message})
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
 
 		assert.NoError(t, lastTelegramErr)
 		assert.True(t, gock.IsDone())
 	})
 
 	t.Run("authUrlError", func(t *testing.T) {
+		telegramController := CreateTelegramController(t)
 		expectedError := errors.New("expected error")
 
-		var lastTelegramErr error
-		testPref.OnError = func(err error, c tele.Context) {
-			lastTelegramErr = err
-		}
-		bot, _ := tele.NewBot(testPref)
-		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
-		authorizerClient := authorizerMocks.NewClientInterface(t)
+		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return("", expectedError)
 
-		messageCompose := mocks.NewMessageComposerInterface(t)
-		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
-
 		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
-			Times(0)
+		NewGock().Times(0)
 
 		out := &bytes.Buffer{}
-		telegramController := &TelegramController{
-			out:              out,
-			bot:              bot,
-			composer:         messageCompose,
-			userRepository:   userRepository,
-			authorizerClient: authorizerClient,
-		}
-		telegramController.Init()
+		telegramController.out = out
 
 		message := getTestSampleMessage()
-		message.Text = "/start"
+		message.Text = startCommand
 
-		bot.ProcessUpdate(tele.Update{Message: &message})
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
 
-		assert.Error(t, lastTelegramErr)
-		assert.Equal(t, expectedError, lastTelegramErr)
+		assert.Equal(t, expectedError, GetEndClearLastTelegramError())
 		assert.Contains(t, out.String(), expectedError.Error())
 		assert.True(t, gock.IsDone())
 	})
@@ -300,7 +247,7 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 		},
 	}
 
-	telegramController, _ := CreateTelegramController(t)
+	telegramController := CreateTelegramController(t)
 
 	expectedJson := map[string]interface{}{
 		"chat_id":      testTelegramUserIdString,
@@ -361,7 +308,7 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 
 func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		telegramController, _ := CreateTelegramController(t)
+		telegramController := CreateTelegramController(t)
 
 		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
 		messageCompose.On("ComposeLogoutFinishedMessage").Return(nil, testMessageText)
@@ -396,7 +343,7 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		expectedError := errors.New("expected error")
 
-		telegramController, _ := CreateTelegramController(t)
+		telegramController := CreateTelegramController(t)
 
 		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
 		messageCompose.On("ComposeLogoutFinishedMessage").Return(expectedError, "")
@@ -424,17 +371,6 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 }
 
 func TestTelegramController_DisciplinesListAction(t *testing.T) {
-	expectedMessage := sendMessageRequest
-	var insertBefore string
-
-	replyMarkupJson := `"reply_markup":"{\\"inline_keyboard\\":(.*)}",`
-	insertBefore = `"text":`
-	expectedMessage = strings.Replace(expectedMessage, insertBefore, replyMarkupJson+insertBefore, 1)
-
-	disableWebPagePreview := `"disable_web_page_preview":"true",`
-	insertBefore = `"parse_mode":`
-	expectedMessage = strings.Replace(expectedMessage, insertBefore, disableWebPagePreview+insertBefore, 1)
-
 	disciplines := scoreApi.DisciplineScoreResults{
 		{
 			Discipline: scoreApi.Discipline{
@@ -465,15 +401,12 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		var lastTelegramErr error
-		testPref.OnError = func(err error, c tele.Context) {
-			lastTelegramErr = err
-		}
-		bot, _ := tele.NewBot(testPref)
-		userRepository := mocks.NewUserRepositoryInterface(t)
+		telegramController := CreateTelegramController(t)
+
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := score.NewMockClientInterface(t)
+		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
 		scoreClient.On("GetStudentDisciplines", sampleStudent.Id).Return(disciplines, nil)
 
 		messageData := models.DisciplinesListMessageData{
@@ -481,80 +414,51 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 			Disciplines:        disciplines,
 		}
 
-		messageCompose := mocks.NewMessageComposerInterface(t)
-		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+		replyMarkup := &tele.ReplyMarkup{
+			OneTimeKeyboard: true,
+			InlineKeyboard:  make([][]tele.InlineButton, len(disciplines)),
+		}
+		for i, discipline := range disciplines {
+			replyMarkup.InlineKeyboard[i] = []tele.InlineButton{
+				{
+					Unique: telegramController.markups.disciplineButton.Unique,
+					Data:   strconv.Itoa(discipline.Discipline.Id),
+					Text:   discipline.Discipline.Name,
+				},
+			}
+		}
+		ProcessReplyMarkup(replyMarkup)
+
+		expectedMessageSend := map[string]interface{}{
+			"chat_id":      testTelegramUserIdString,
+			"parse_mode":   "Markdown",
+			"reply_markup": toJson(replyMarkup),
+			"text":         testMessageText,
+		}
+
+		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
 		messageCompose.On("ComposeDisciplinesListMessage", messageData).Return(nil, testMessageText)
 
-		bodyRegExp, _ := regexp.Compile(expectedMessage)
-		actualMarkupJson := ""
-
 		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
-			Times(1).
-			Post("/sendMessage").
-			JSON(expectedMessage).
-			AddMatcher(func(request *http.Request, _ *gock.Request) (bool, error) {
-				body, _ := io.ReadAll(request.Body)
-				matches := bodyRegExp.FindStringSubmatch(string(body))
-				if len(matches) >= 2 {
-					actualMarkupJson = strings.Replace(matches[1], `\"`, `"`, -1)
-					return true, nil
-				}
-				return false, nil
-			}).
-			Reply(200).
-			JSON(sendMessageSuccessResponse)
-
-		telegramController := &TelegramController{
-			out:            &bytes.Buffer{},
-			bot:            bot,
-			scoreClient:    scoreClient,
-			composer:       messageCompose,
-			userRepository: userRepository,
-		}
-		telegramController.Init()
+		NewGock().Times(1).Post("/sendMessage").JSON(expectedMessageSend).
+			Reply(200).JSON(sendMessageSuccessResponse)
 
 		message := getTestSampleMessage()
 		message.Text = listCommand
 
-		bot.ProcessUpdate(tele.Update{Message: &message})
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
 
-		assert.NoError(t, lastTelegramErr)
 		assert.True(t, gock.IsDone())
-
-		var actualInlineButtons [][]tele.InlineButton
-		err := json.Unmarshal([]byte(actualMarkupJson), &actualInlineButtons)
-		assert.NoError(t, err)
-
-		assert.Len(t, actualInlineButtons, len(disciplines))
-
-		callbackPrefixBytes, _ := json.Marshal(telegramController.markups.disciplineButton.CallbackUnique())
-		expectedCallback := strings.Trim(string(callbackPrefixBytes), `"`) + `|%d`
-
-		var discipline scoreApi.Discipline
-		for index, actualInlineButtonRow := range actualInlineButtons {
-			assert.Len(t, actualInlineButtonRow, 1)
-
-			discipline = disciplines[index].Discipline
-			disciplineButton := actualInlineButtonRow[0]
-
-			assert.Equal(t, fmt.Sprintf(expectedCallback, discipline.Id), disciplineButton.Data)
-			assert.Equal(t, discipline.Name, disciplineButton.Text)
-		}
 	})
 
 	t.Run("error", func(t *testing.T) {
+		telegramController := CreateTelegramController(t)
 		expectedError := errors.New("expected error")
 
-		var lastTelegramErr error
-		testPref.OnError = func(err error, c tele.Context) {
-			lastTelegramErr = err
-		}
-		bot, _ := tele.NewBot(testPref)
-		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := score.NewMockClientInterface(t)
+		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
 		scoreClient.On("GetStudentDisciplines", sampleStudent.Id).Return(disciplines, nil)
 
 		messageData := models.DisciplinesListMessageData{
@@ -562,32 +466,19 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 			Disciplines:        disciplines,
 		}
 
-		messageCompose := mocks.NewMessageComposerInterface(t)
-		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
 		messageCompose.On("ComposeDisciplinesListMessage", messageData).Return(expectedError, "")
 
 		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
-			Post("/sendMessage").
-			Times(0)
-
-		telegramController := &TelegramController{
-			out:            &bytes.Buffer{},
-			bot:            bot,
-			scoreClient:    scoreClient,
-			composer:       messageCompose,
-			userRepository: userRepository,
-		}
-		telegramController.Init()
+		NewGock().Post("/sendMessage").Times(0)
 
 		message := getTestSampleMessage()
 		message.Text = listCommand
 
-		bot.ProcessUpdate(tele.Update{Message: &message})
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
 
-		assert.Error(t, lastTelegramErr)
+		assert.Equal(t, expectedError, GetEndClearLastTelegramError())
 		assert.True(t, gock.IsDone())
-		assert.Equal(t, expectedError, lastTelegramErr)
 	})
 }
 
@@ -624,7 +515,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		telegramController, bot := CreateTelegramController(t)
+		telegramController := CreateTelegramController(t)
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
@@ -640,7 +531,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		messageCompose.On("ComposeDisciplineScoresMessage", messageData).Return(nil, testMessageText)
 
 		replyMarkup := &tele.ReplyMarkup{
-			ResizeKeyboard: true,
+			OneTimeKeyboard: true,
 			InlineKeyboard: [][]tele.InlineButton{
 				{
 					*telegramController.markups.listButton,
@@ -665,7 +556,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		message := getTestSampleMessage()
 		message.Text = ""
 
-		bot.ProcessUpdate(tele.Update{
+		telegramController.bot.ProcessUpdate(tele.Update{
 			Message: &message,
 			Callback: &tele.Callback{
 				Data:   cbData,
@@ -677,68 +568,58 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
+		telegramController := CreateTelegramController(t)
 		expectedError := errors.New("expected error")
 
-		var lastTelegramErr error
-		testPref.OnError = func(err error, c tele.Context) {
-			lastTelegramErr = err
-		}
-		bot, _ := tele.NewBot(testPref)
-		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := score.NewMockClientInterface(t)
+		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
 		scoreClient.On("GetStudentDiscipline", sampleStudent.Id, disciplineId).Return(scoreApi.DisciplineScoreResult{}, expectedError)
 
-		messageCompose := mocks.NewMessageComposerInterface(t)
-		messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
+		out := &bytes.Buffer{}
+		telegramController.out = out
+
+		expectedJson := map[string]interface{}{
+			"chat_id":      testTelegramUserIdString,
+			"message_id":   strconv.Itoa(testTelegramIncomingMessageId),
+			"reply_markup": "{}",
+		}
 
 		defer gock.Off()
-		gock.New(testTelegramURL + "/" + "bot" + testTelegramToken).
-			Post("/sendMessage").
-			Times(0).
-			Post("/editMessageReplyMarkup").
-			JSON(`{"chat_id":"` + testTelegramUserIdString + `","message_id":"` + strconv.Itoa(testTelegramIncomingMessageId) + `","reply_markup":"{}"}`).
-			Times(1).
+		NewGock().Post("/sendMessage").Times(0)
+
+		NewGock().
+			Post("/editMessageReplyMarkup").JSON(expectedJson).Times(1).
 			Reply(400).
-			JSON(`{
-			  "ok": false,
-			  "error_code": 400,
-			  "description": "Bad Request: message is not modified"
-			}`)
+			JSON(map[string]interface{}{
+				"ok":          false,
+				"error_code":  400,
+				"description": "Bad Request: message is not modified",
+			})
 
-		out := &bytes.Buffer{}
-		telegramController := &TelegramController{
-			out:            out,
-			bot:            bot,
-			scoreClient:    scoreClient,
-			composer:       messageCompose,
-			userRepository: userRepository,
-		}
-		telegramController.Init()
-
-		cbData := fmt.Sprintf(`%s|%d`, telegramController.markups.disciplineButton.CallbackUnique(), disciplineId)
+		button := telegramController.markups.disciplineButton.With(strconv.Itoa(disciplineId))
+		ProcessInlineButton(button)
 
 		message := getTestSampleMessage()
 		message.Text = ""
 
-		bot.ProcessUpdate(tele.Update{
+		telegramController.bot.ProcessUpdate(tele.Update{
 			Message: &message,
 			Callback: &tele.Callback{
-				Data:   cbData,
+				Data:   button.Data,
 				Sender: message.Sender,
 			},
 		})
 
-		assert.Error(t, lastTelegramErr)
+		assert.Equal(t, expectedError, GetEndClearLastTelegramError())
 		assert.True(t, gock.IsDone())
-		assert.Equal(t, expectedError, lastTelegramErr)
 		assert.Contains(t, out.String(), `Failed to remove reply markup: telegram: message is not modified (400)`)
 	})
 }
 
 func TestTelegramController_ScoreChangedAction(t *testing.T) {
-	telegramController, _ := CreateTelegramController(t)
+	telegramController := CreateTelegramController(t)
 
 	discipline := scoreApi.Discipline{
 		Id:   12,
@@ -769,8 +650,8 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 	disciplineButton.Text = disciplineScore.Discipline.Name
 
 	replyMarkup := &tele.ReplyMarkup{
-		ResizeKeyboard: true,
-		InlineKeyboard: [][]tele.InlineButton{{*disciplineButton}},
+		OneTimeKeyboard: true,
+		InlineKeyboard:  [][]tele.InlineButton{{*disciplineButton}},
 	}
 	ProcessReplyMarkup(replyMarkup)
 	replyMarkupJson := toJson(replyMarkup)
@@ -963,6 +844,18 @@ func ProcessReplyMarkup(markup *tele.ReplyMarkup) {
 		ReplyMarkup: markup,
 	}
 	result.Process(nil)
+}
+
+func ProcessInlineButton(button *tele.InlineButton) {
+	replyMarkup := &tele.ReplyMarkup{
+		OneTimeKeyboard: true,
+		InlineKeyboard: [][]tele.InlineButton{
+			{*button},
+		},
+	}
+	ProcessReplyMarkup(replyMarkup)
+
+	*button = replyMarkup.InlineKeyboard[0][0]
 }
 
 func PrintBodyMatcher(req *http.Request, ereq *gock.Request) (bool, error) {
