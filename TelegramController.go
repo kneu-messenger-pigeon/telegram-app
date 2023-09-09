@@ -251,7 +251,7 @@ func (controller *TelegramController) ScoreChangedAction(
 					ChatID:    chatIdInt64,
 				})
 				controller.debugLogger.Log(
-					"ScoreChangedAction: delete message with id %d, chatId %d; err: %v",
+					"ScoreChangedAction: delete message with id %s, chatId %s; err: %v",
 					previousMessageId, chatId, err,
 				)
 			}
@@ -270,7 +270,7 @@ func (controller *TelegramController) ScoreChangedAction(
 			}, messageText, replyMarkup)
 
 			controller.debugLogger.Log(
-				"ScoreChangedAction: edit message with id %d, chatId %d; err: %v; message: %v",
+				"ScoreChangedAction: edit message with id %s, chatId %s; err: %v; message: %v",
 				previousMessageId, chatId, err, message,
 			)
 		}
