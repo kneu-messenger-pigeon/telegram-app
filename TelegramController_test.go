@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/h2non/gock"
 	authorizerMocks "github.com/kneu-messenger-pigeon/authorizer-client/mocks"
+	framework "github.com/kneu-messenger-pigeon/client-framework"
 	"github.com/kneu-messenger-pigeon/client-framework/mocks"
 	"github.com/kneu-messenger-pigeon/client-framework/models"
 	"github.com/kneu-messenger-pigeon/events"
@@ -92,6 +93,7 @@ func CreateTelegramController(t *testing.T) (telegramController *TelegramControl
 
 	telegramController = &TelegramController{
 		out:               &bytes.Buffer{},
+		debugLogger:       &framework.DebugLogger{},
 		bot:               bot,
 		composer:          messageCompose,
 		userRepository:    mocks.NewUserRepositoryInterface(t),

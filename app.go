@@ -45,6 +45,7 @@ func runApp(out io.Writer) error {
 
 	telegramController := &TelegramController{
 		out:               out,
+		debugLogger:       serviceContainer.DebugLogger,
 		bot:               bot,
 		composer:          framework.NewMessageComposer(framework.MessageComposerConfig{}),
 		userRepository:    serviceContainer.UserRepository,

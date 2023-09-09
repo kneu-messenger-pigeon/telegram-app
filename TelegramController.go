@@ -26,6 +26,7 @@ const TelegramControllerStartedMessage = "Telegram controller started\n"
 
 type TelegramController struct {
 	out               io.Writer
+	debugLogger       *framework.DebugLogger
 	bot               *telebot.Bot
 	composer          framework.MessageComposerInterface
 	userRepository    framework.UserRepositoryInterface
@@ -249,16 +250,29 @@ func (controller *TelegramController) ScoreChangedAction(
 					MessageID: previousMessageId,
 					ChatID:    chatIdInt64,
 				})
+				controller.debugLogger.Log(
+					"ScoreChangedAction: delete message with id %d, chatId %d; err: %v",
+					previousMessageId, chatId, err,
+				)
 			}
 
 		} else if previousMessageId == "" {
 			message, err = controller.bot.Send(tele.ChatID(chatIdInt64), messageText, replyMarkup)
+			controller.debugLogger.Log(
+				"ScoreChangedAction: send new message to %s; err: %v; message: %v",
+				chatId, err, message,
+			)
 
 		} else {
 			message, err = controller.bot.Edit(tele.StoredMessage{
 				MessageID: previousMessageId,
 				ChatID:    chatIdInt64,
 			}, messageText, replyMarkup)
+
+			controller.debugLogger.Log(
+				"ScoreChangedAction: edit message with id %d, chatId %d; err: %v; message: %v",
+				previousMessageId, chatId, err, message,
+			)
 		}
 
 		err = controller.handleTelegramError(err, chatIdInt64)
