@@ -347,6 +347,10 @@ github.com/kneu-messenger-pigeon/client-framework v0.1.32 h1:p9SEgKs4OpCwng0Bogo
 github.com/kneu-messenger-pigeon/client-framework v0.1.32/go.mod h1:kcGNCSyD3UoDvo1nC9hdr7cei/h5rmFZTFnXmohKvJY=
 github.com/kneu-messenger-pigeon/client-framework v0.1.33 h1:NucM2HttPinKcBbzgyCrusqRtZ6IbxGNrPsKMwuRS+0=
 github.com/kneu-messenger-pigeon/client-framework v0.1.33/go.mod h1:kcGNCSyD3UoDvo1nC9hdr7cei/h5rmFZTFnXmohKvJY=
+github.com/kneu-messenger-pigeon/client-framework v0.1.34 h1:aFSg9G8zOpA3JX7jCJToSmTij1pCzfvspArngOo4TQE=
+github.com/kneu-messenger-pigeon/client-framework v0.1.34/go.mod h1:kcGNCSyD3UoDvo1nC9hdr7cei/h5rmFZTFnXmohKvJY=
+github.com/kneu-messenger-pigeon/client-framework v0.1.35 h1:hoJlWdFwrOtfJc2CRuvWARxkKnEeowkLbI/PcS/pO04=
+github.com/kneu-messenger-pigeon/client-framework v0.1.35/go.mod h1:kcGNCSyD3UoDvo1nC9hdr7cei/h5rmFZTFnXmohKvJY=
 github.com/kneu-messenger-pigeon/events v0.1.23 h1:N3TYDysQ9DNIyQMhMhZkzgYHg5HRqZwmK98i+yKpV+c=
 github.com/kneu-messenger-pigeon/events v0.1.23/go.mod h1:yPgqpO/+XVOZmTdH8BB4wbE+2/keLNhjorMVzJwHQL8=
 github.com/kneu-messenger-pigeon/events v0.1.27 h1:d4KnkSJ5GUDc/LOFGG7+kcTgFu1U5MR01G8Nvdg7/1c=
