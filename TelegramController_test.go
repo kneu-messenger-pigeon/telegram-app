@@ -195,9 +195,10 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		messageCompose.On("ComposeWelcomeAnonymousMessage", testAuthUrl).Return(nil, testMessageText)
 
 		sendMessageRequest := map[string]interface{}{
-			"chat_id":    testTelegramUserIdString,
-			"parse_mode": "Markdown",
-			"text":       testMessageText,
+			"chat_id":         testTelegramUserIdString,
+			"parse_mode":      "Markdown",
+			"protect_content": "true",
+			"text":            testMessageText,
 		}
 
 		defer gock.Off()

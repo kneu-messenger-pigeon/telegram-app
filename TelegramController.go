@@ -125,7 +125,7 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 
 	err, message := controller.composer.ComposeWelcomeAnonymousMessage(authUrl)
 	if err == nil {
-		err = c.Send(message)
+		err = c.Send(message, tele.Protected)
 	}
 	return err
 }
