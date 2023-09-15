@@ -144,6 +144,10 @@ func (controller *TelegramController) WelcomeAuthorizedAction(event *events.User
 			message,
 			controller.markups.authorizedUserReplyMarkup,
 		)
+
+		if err != nil {
+			_, _ = fmt.Fprintf(controller.out, "WelcomeAuthorizedAction failed to send message: %v; text: %s\n", err, message)
+		}
 	}
 
 	return err
@@ -153,6 +157,11 @@ func (controller *TelegramController) LogoutFinishedAction(event *events.UserAut
 	err, message := controller.composer.ComposeLogoutFinishedMessage()
 	if err == nil {
 		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.logoutUserReplyMarkup)
+
+		if err != nil {
+			_, _ = fmt.Fprintf(controller.out, "WelcomeAuthorizedAction failed to send message: %v; text: %s\n", err, message)
+		}
+
 	}
 	return err
 }

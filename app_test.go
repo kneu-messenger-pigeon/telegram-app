@@ -43,7 +43,16 @@ func TestRunApp(t *testing.T) {
 		for i := 0; i < framework.ScoreChangedEventProcessorCount+5; i++ {
 			runtime.Gosched()
 		}
-		time.Sleep(time.Millisecond * 500)
+
+		deadline := time.After(time.Second)
+	waitingLoop:
+		for bytes.Contains(out.Bytes(), []byte("Started consuming")) {
+			select {
+			case <-time.After(time.Millisecond * 100):
+			case <-deadline:
+				break waitingLoop
+			}
+		}
 		outputString := out.String()
 		fmt.Println(outputString)
 

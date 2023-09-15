@@ -299,12 +299,23 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 
 		telegramController.composer = messageCompose
 		telegramController.userRepository = userRepository
+		out := telegramController.out.(*bytes.Buffer)
+
+		errorText := "example-test-error"
 
 		defer gock.Off()
-		NewGock().Times(1).Post("/sendMessage").JSON(expectedJson).Reply(400)
+		NewGock().Times(1).
+			Post("/sendMessage").JSON(expectedJson).
+			Reply(400).JSON(map[string]interface{}{
+			"ok":          false,
+			"error_code":  400,
+			"description": errorText,
+		})
 
 		err := telegramController.WelcomeAuthorizedAction(event)
 		assert.Error(t, err)
+		assert.Contains(t, out.String(), errorText)
+		assert.Contains(t, out.String(), testMessageText)
 		assert.True(t, gock.IsDone())
 	})
 }
@@ -368,6 +379,52 @@ func TestTelegramController_LogoutFinishedAction(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, expectedError, err)
+
+		assert.True(t, gock.IsDone())
+	})
+
+	t.Run("error_send", func(t *testing.T) {
+		errorText := "Bad Request: can't parse entities"
+		expectedError := errors.New("telegram: " + errorText + " (400)")
+
+		telegramController := CreateTelegramController(t)
+		out := telegramController.out.(*bytes.Buffer)
+
+		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
+		messageCompose.On("ComposeLogoutFinishedMessage").Return(nil, testMessageText)
+
+		expectedJson := map[string]interface{}{
+			"chat_id":      testTelegramUserIdString,
+			"parse_mode":   "Markdown",
+			"reply_markup": toJson(telegramController.markups.logoutUserReplyMarkup),
+			"text":         testMessageText,
+		}
+
+		defer gock.Off()
+		NewGock().Times(1).Post("/sendMessage").JSON(expectedJson).
+			Reply(400).
+			JSON(map[string]interface{}{
+				"ok":          false,
+				"error_code":  400,
+				"description": errorText,
+			})
+
+		event := &events.UserAuthorizedEvent{
+			Client:       "test",
+			ClientUserId: testTelegramUserIdString,
+			StudentId:    0,
+			LastName:     "",
+			FirstName:    "",
+			MiddleName:   "",
+			Gender:       0,
+		}
+
+		err := telegramController.LogoutFinishedAction(event)
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedError, err)
+		assert.Contains(t, out.String(), errorText)
+		assert.Contains(t, out.String(), testMessageText)
 
 		assert.True(t, gock.IsDone())
 	})
