@@ -27,8 +27,8 @@ var unEscapeMarkDownLinks = regexp.MustCompile(`(?m)\\\[([^\[\]]*)\\\]\\\(([^\)]
 var unEscapeMarkDownLinksSubstitution = "[$1]($2)"
 
 func escapeMarkDown(markdownStr string) string {
-	// do not escape special chars to keep format: * bold; _ italic; ~strikethrough; | - spoiler; ` - code
-	escapeChar := []string{"[", "]", "(", ")", ">", "#", "+", "-", "=", "{", "}", ".", "!"}
+	// do not escape special chars to keep format: * bold; _ italic; ~strikethrough; | - spoiler;
+	escapeChar := []string{"[", "]", "(", ")", ">", "#", "+", "-", "=", "{", "}", ".", "!", "`"}
 	for _, char := range escapeChar {
 		if strings.Contains(markdownStr, char) {
 			markdownStr = strings.ReplaceAll(markdownStr, char, "\\"+char)
