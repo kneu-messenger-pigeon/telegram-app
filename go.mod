@@ -3,9 +3,10 @@ module telegram-app
 go 1.20
 
 require (
+	github.com/VictoriaMetrics/metrics v1.24.0
 	github.com/h2non/gock v1.2.0
 	github.com/kneu-messenger-pigeon/authorizer-client v0.1.3
-	github.com/kneu-messenger-pigeon/client-framework v0.1.37
+	github.com/kneu-messenger-pigeon/client-framework v0.1.38
 	github.com/kneu-messenger-pigeon/events v0.1.41
 	github.com/kneu-messenger-pigeon/score-api v0.1.11
 	github.com/kneu-messenger-pigeon/score-client v0.1.11
@@ -14,7 +15,6 @@ require (
 )
 
 require (
-	github.com/VictoriaMetrics/metrics v1.24.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
