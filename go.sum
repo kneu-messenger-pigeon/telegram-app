@@ -281,6 +281,8 @@ github.com/kneu-messenger-pigeon/client-framework v0.1.38 h1:6LAlYEJQmCBYY/H7dnw
 github.com/kneu-messenger-pigeon/client-framework v0.1.38/go.mod h1:fPRs8gHPKNE945vnJKQ2yfDuw3ML8jRp0xAEaUynaTs=
 github.com/kneu-messenger-pigeon/client-framework v0.1.39 h1:FqClItr/XzoS+DwBys2MbnIZEh535LKKybjQd6pc+6g=
 github.com/kneu-messenger-pigeon/client-framework v0.1.39/go.mod h1:fPRs8gHPKNE945vnJKQ2yfDuw3ML8jRp0xAEaUynaTs=
+github.com/kneu-messenger-pigeon/client-framework v0.1.40 h1:YCrHgwoMBNecQmdyg2ZNX8O5zljd7ZleUj+UaIP9cgo=
+github.com/kneu-messenger-pigeon/client-framework v0.1.40/go.mod h1:fPRs8gHPKNE945vnJKQ2yfDuw3ML8jRp0xAEaUynaTs=
 github.com/kneu-messenger-pigeon/events v0.1.41 h1:Yzzp7oyVArzKzzI93HmLX+k3lUn8E3dKUk9uNF3le+8=
 github.com/kneu-messenger-pigeon/events v0.1.41/go.mod h1:Q6X8B9gKZpKbby9gisLumvGT1xCWBM7bAFnviYi6MBQ=
 github.com/kneu-messenger-pigeon/score-api v0.1.11 h1:YZ3fKhJqHVCPXoqAT7BuWpxCveDqCgUmIhGoNBPBRGI=
