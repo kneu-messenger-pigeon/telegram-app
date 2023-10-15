@@ -6,6 +6,7 @@ import (
 	"fmt"
 	framework "github.com/kneu-messenger-pigeon/client-framework"
 	"github.com/stretchr/testify/assert"
+	tele "gopkg.in/telebot.v3"
 	"os"
 	"runtime"
 	"strings"
@@ -133,5 +134,25 @@ func TestHandleExitError(t *testing.T) {
 				assert.Contains(t, out.String(), err.Error(), "error output hasn't error description")
 			}
 		}
+	})
+}
+
+func TestTelegramOnError(t *testing.T) {
+	t.Run("noContext", func(t *testing.T) {
+		TelegramOnError(errors.New("dummy error"), nil)
+
+		assert.Equal(t, uint64(1), onErrorCount.Get())
+	})
+
+	t.Run("Context", func(t *testing.T) {
+		bot := tele.Bot{}
+
+		ctx := bot.NewContext(tele.Update{
+			ID: 123,
+		})
+
+		TelegramOnError(errors.New("dummy error"), ctx)
+
+		assert.Equal(t, uint64(1), onUpdateErrorCount.Get())
 	})
 }

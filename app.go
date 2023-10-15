@@ -5,6 +5,7 @@ import (
 	framework "github.com/kneu-messenger-pigeon/client-framework"
 	tele "gopkg.in/telebot.v3"
 	"io"
+	"log"
 	"os"
 	"time"
 )
@@ -31,6 +32,7 @@ func runApp(out io.Writer) error {
 			Timeout: time.Second * 30,
 		},
 		ParseMode: tele.ModeMarkdownV2,
+		OnError:   TelegramOnError,
 	}
 
 	if err == nil {
@@ -70,4 +72,14 @@ func handleExitError(errStream io.Writer, err error) int {
 		return ExitCodeMainError
 	}
 	return 0
+}
+
+func TelegramOnError(err error, c tele.Context) {
+	if c != nil {
+		log.Println(c.Update().ID, err)
+		onUpdateErrorCount.Inc()
+	} else {
+		log.Println(err)
+		onErrorCount.Inc()
+	}
 }

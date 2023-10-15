@@ -167,6 +167,8 @@ func (controller *TelegramController) LogoutFinishedAction(event *events.UserAut
 }
 
 func (controller *TelegramController) DisciplinesListAction(c tele.Context) error {
+	DisciplinesListActionRequestTotal.Inc()
+
 	student := getStudent(c)
 
 	disciplines, err := controller.scoreClient.GetStudentDisciplines(student.Id)
@@ -203,6 +205,8 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 }
 
 func (controller *TelegramController) DisciplineScoresAction(c tele.Context) error {
+	DisciplineScoresActionRequestTotal.Inc()
+
 	var message string
 	student := getStudent(c)
 	disciplineId, _ := strconv.Atoi(c.Callback().Data)
