@@ -76,7 +76,12 @@ func handleExitError(errStream io.Writer, err error) int {
 
 func TelegramOnError(err error, c tele.Context) {
 	if c != nil {
-		log.Println(c.Update().ID, err)
+		studentId := uint32(0)
+		if c.Get(contextStudentKey) != nil {
+			studentId = getStudent(c).Id
+		}
+
+		log.Println(studentId, c.Update().ID, err)
 		onUpdateErrorCount.Inc()
 	} else {
 		log.Println(err)
