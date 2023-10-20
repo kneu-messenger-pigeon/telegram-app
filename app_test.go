@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	framework "github.com/kneu-messenger-pigeon/client-framework"
+	"github.com/kneu-messenger-pigeon/client-framework/models"
 	"github.com/stretchr/testify/assert"
 	tele "gopkg.in/telebot.v3"
 	"os"
@@ -149,6 +150,9 @@ func TestTelegramOnError(t *testing.T) {
 
 		ctx := bot.NewContext(tele.Update{
 			ID: 123,
+		})
+		ctx.Set(contextStudentKey, &models.Student{
+			Id: 1,
 		})
 
 		TelegramOnError(errors.New("dummy error"), ctx)
