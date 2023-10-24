@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/kneu-messenger-pigeon/authorizer-client"
 	framework "github.com/kneu-messenger-pigeon/client-framework"
@@ -286,6 +287,11 @@ func (controller *TelegramController) ScoreChangedAction(
 				"ScoreChangedAction: edit message with id %s, chatId %s; err: %v; message: %v",
 				previousMessageId, chatId, err, message,
 			)
+
+			if errors.Is(err, tele.ErrSameMessageContent) || errors.Is(err, tele.ErrMessageNotModified) {
+				_, _ = fmt.Fprintln(controller.out, `Ignore error "message not modified"`)
+				return nil, previousMessageId
+			}
 		}
 
 		err = controller.handleTelegramError(err, chatIdInt64)

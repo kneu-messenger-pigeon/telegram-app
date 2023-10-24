@@ -751,7 +751,8 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 	})
 
 	t.Run("edit_previous_message", func(t *testing.T) {
-		var previousChatMessageId = "6655443322"
+		var previousChatMessageIdInt = 6655443322
+		var previousChatMessageId = strconv.Itoa(previousChatMessageIdInt)
 
 		thisCaseExpectedMessageSend := map[string]interface{}{
 			"chat_id":      testTelegramUserIdString,
@@ -761,19 +762,47 @@ func TestTelegramController_ScoreChangedAction(t *testing.T) {
 			"text":         testMessageText,
 		}
 
-		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
-		messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
+		runEditScoreFlow := func(t *testing.T) {
+			messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
+			messageCompose.On("ComposeScoreChanged", messageData).Return(nil, testMessageText)
 
-		defer gock.Off()
-		NewGock().Times(1).Post("/editMessageText").JSON(thisCaseExpectedMessageSend).
-			Reply(200).JSON(sendMessageSuccessResponse)
+			actualErr, actualMessageId := telegramController.ScoreChangedAction(
+				testTelegramUserIdString, previousChatMessageId, disciplineScore, previousScore,
+			)
+			assert.NoError(t, actualErr)
+			assert.True(t, gock.IsDone())
+			assert.Equal(t, previousChatMessageId, actualMessageId)
+		}
 
-		actualErr, actualMessageId := telegramController.ScoreChangedAction(
-			testTelegramUserIdString, previousChatMessageId, disciplineScore, previousScore,
-		)
-		assert.NoError(t, actualErr)
-		assert.True(t, gock.IsDone())
-		assert.Equal(t, strconv.Itoa(testTelegramSendMessageId), actualMessageId)
+		t.Run("success", func(t *testing.T) {
+			telegramSuccessResponse := map[string]interface{}{
+				"ok": true,
+				"result": map[string]interface{}{
+					"message_id": previousChatMessageIdInt,
+				},
+			}
+
+			defer gock.Off()
+			NewGock().Times(1).Post("/editMessageText").JSON(thisCaseExpectedMessageSend).
+				Reply(200).JSON(telegramSuccessResponse)
+
+			runEditScoreFlow(t)
+		})
+
+		t.Run("same_content_error", func(t *testing.T) {
+			sameContentError := map[string]interface{}{
+				"ok":          false,
+				"error_code":  400,
+				"description": "Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message",
+			}
+
+			defer gock.Off()
+			NewGock().Times(1).Post("/editMessageText").JSON(thisCaseExpectedMessageSend).
+				Reply(400).JSON(sameContentError)
+
+			runEditScoreFlow(t)
+		})
+
 	})
 
 	t.Run("delete_previous_message", func(t *testing.T) {
