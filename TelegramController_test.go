@@ -182,6 +182,11 @@ func TestTelegramController_ResetAction(t *testing.T) {
 func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		testAuthUrl := "http://auth.kneu.test/oauth"
+		expireAt := time.Date(2024, 3, 24, 16, 25, 0, 0, time.Local)
+		messageData := models.WelcomeAnonymousMessageData{
+			AuthUrl:  testAuthUrl,
+			ExpireAt: expireAt,
+		}
 
 		telegramController := CreateTelegramController(t)
 
@@ -189,10 +194,10 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
-		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, nil)
+		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
 
 		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
-		messageCompose.On("ComposeWelcomeAnonymousMessage", testAuthUrl).Return(nil, testMessageText)
+		messageCompose.On("ComposeWelcomeAnonymousMessage", messageData).Return(nil, testMessageText)
 
 		sendMessageRequest := map[string]interface{}{
 			"chat_id":         testTelegramUserIdString,
@@ -222,7 +227,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
-		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return("", expectedError)
+		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return("", time.Time{}, expectedError)
 
 		defer gock.Off()
 		NewGock().Times(0)

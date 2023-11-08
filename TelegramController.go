@@ -114,7 +114,7 @@ func (controller *TelegramController) ResetAction(c tele.Context) error {
 }
 
 func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) error {
-	authUrl, err := controller.authorizerClient.GetAuthUrl(
+	authUrl, expireAt, err := controller.authorizerClient.GetAuthUrl(
 		strconv.FormatInt(c.Chat().ID, 10),
 		controller.authRedirectUrl,
 	)
@@ -124,7 +124,12 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 		return err
 	}
 
-	err, message := controller.composer.ComposeWelcomeAnonymousMessage(authUrl)
+	err, message := controller.composer.ComposeWelcomeAnonymousMessage(
+		models.WelcomeAnonymousMessageData{
+			AuthUrl:  authUrl,
+			ExpireAt: expireAt,
+		},
+	)
 	if err == nil {
 		err = c.Send(message, tele.Protected)
 	}
