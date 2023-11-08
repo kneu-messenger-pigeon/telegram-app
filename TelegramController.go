@@ -131,7 +131,7 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 		},
 	)
 	if err == nil {
-		err = c.Send(message, tele.Protected)
+		err = c.Send(message, tele.Protected, controller.markups.logoutUserReplyMarkup)
 	}
 	return err
 }

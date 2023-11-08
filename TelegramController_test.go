@@ -202,6 +202,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		sendMessageRequest := map[string]interface{}{
 			"chat_id":         testTelegramUserIdString,
 			"parse_mode":      "Markdown",
+			"reply_markup":    toJson(telegramController.markups.logoutUserReplyMarkup),
 			"protect_content": "true",
 			"text":            testMessageText,
 		}
