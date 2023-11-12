@@ -8,6 +8,7 @@ import (
 	"github.com/h2non/gock"
 	authorizerMocks "github.com/kneu-messenger-pigeon/authorizer-client/mocks"
 	framework "github.com/kneu-messenger-pigeon/client-framework"
+	"github.com/kneu-messenger-pigeon/client-framework/delayedDeleter/contracts"
 	"github.com/kneu-messenger-pigeon/client-framework/mocks"
 	"github.com/kneu-messenger-pigeon/client-framework/models"
 	"github.com/kneu-messenger-pigeon/events"
@@ -92,14 +93,15 @@ func CreateTelegramController(t *testing.T) (telegramController *TelegramControl
 	messageCompose.On("SetPostFilter", mock.AnythingOfType("func(string) string")).Once().Return()
 
 	telegramController = &TelegramController{
-		out:               &bytes.Buffer{},
-		debugLogger:       &framework.DebugLogger{},
-		bot:               bot,
-		composer:          messageCompose,
-		userRepository:    mocks.NewUserRepositoryInterface(t),
-		userLogoutHandler: mocks.NewUserLogoutHandlerInterface(t),
-		authorizerClient:  authorizerMocks.NewClientInterface(t),
-		scoreClient:       score.NewMockClientInterface(t),
+		out:                            &bytes.Buffer{},
+		debugLogger:                    &framework.DebugLogger{},
+		bot:                            bot,
+		composer:                       messageCompose,
+		userRepository:                 mocks.NewUserRepositoryInterface(t),
+		userLogoutHandler:              mocks.NewUserLogoutHandlerInterface(t),
+		authorizerClient:               authorizerMocks.NewClientInterface(t),
+		scoreClient:                    score.NewMockClientInterface(t),
+		welcomeAnonymousDelayedDeleter: mocks.NewDeleterInterface(t),
 	}
 	telegramController.Init()
 
@@ -199,6 +201,14 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
 		messageCompose.On("ComposeWelcomeAnonymousMessage", messageData).Return(nil, testMessageText)
 
+		expectedTask := &contracts.DeleteTask{
+			ScheduledAt: expireAt.Unix(),
+			MessageId:   testTelegramSendMessageId,
+			ChatId:      testTelegramUserId,
+		}
+		delayedDeleter := telegramController.welcomeAnonymousDelayedDeleter.(*mocks.DeleterInterface)
+		delayedDeleter.On("AddToQueue", expectedTask).Return(nil)
+
 		sendMessageRequest := map[string]interface{}{
 			"chat_id":         testTelegramUserIdString,
 			"parse_mode":      "Markdown",
@@ -217,6 +227,38 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
 
 		assert.NoError(t, lastTelegramErr)
+		assert.True(t, gock.IsDone())
+	})
+
+	t.Run("ComposeWelcomeAnonymousMessageError", func(t *testing.T) {
+		testAuthUrl := "http://auth.kneu.test/oauth"
+		expireAt := time.Date(2024, 3, 24, 16, 25, 0, 0, time.Local)
+		messageData := models.WelcomeAnonymousMessageData{
+			AuthUrl:  testAuthUrl,
+			ExpireAt: expireAt,
+		}
+		expectedError := errors.New("expected error")
+
+		telegramController := CreateTelegramController(t)
+
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+
+		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
+		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
+
+		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
+		messageCompose.On("ComposeWelcomeAnonymousMessage", messageData).Return(expectedError, "")
+
+		defer gock.Off()
+		NewGock().Times(0)
+
+		message := getTestSampleMessage()
+		message.Text = startCommand
+
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
+
+		assert.Equal(t, expectedError, GetEndClearLastTelegramError())
 		assert.True(t, gock.IsDone())
 	})
 
@@ -246,6 +288,49 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		assert.True(t, gock.IsDone())
 	})
 
+}
+
+func TestTelegramController_HandleDeleteTask(t *testing.T) {
+	executeHandleDeleteMessage := func(deleteMessageSuccessResponse map[string]interface{}) error {
+		expectedTask := &contracts.DeleteTask{
+			ScheduledAt: time.Now().Unix(),
+			MessageId:   123456,
+			ChatId:      98789,
+		}
+
+		telegramController := CreateTelegramController(t)
+
+		expectedDeleteMessageJson := map[string]interface{}{
+			"chat_id":    strconv.Itoa(int(expectedTask.ChatId)),
+			"message_id": strconv.Itoa(int(expectedTask.MessageId)),
+		}
+
+		defer gock.Off()
+		NewGock().Times(1).Post("/deleteMessage").JSON(expectedDeleteMessageJson).
+			Reply(200).JSON(deleteMessageSuccessResponse)
+
+		return telegramController.HandleDeleteTask(expectedTask)
+	}
+
+	t.Run("success", func(t *testing.T) {
+		deleteMessageSuccessResponse := map[string]interface{}{
+			"ok":     true,
+			"result": true,
+		}
+		err := executeHandleDeleteMessage(deleteMessageSuccessResponse)
+		assert.NoError(t, err)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		deleteMessageSuccessResponse := map[string]interface{}{
+			"ok":          false,
+			"error_code":  400,
+			"description": "errorText",
+		}
+		err := executeHandleDeleteMessage(deleteMessageSuccessResponse)
+		assert.Error(t, err)
+
+	})
 }
 
 func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
@@ -293,6 +378,30 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 		err := telegramController.WelcomeAuthorizedAction(event)
 
 		assert.NoError(t, err)
+		assert.True(t, gock.IsDone())
+	})
+
+	t.Run("composeMessageError", func(t *testing.T) {
+		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+
+		expectedError := errors.New("expected error")
+
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(expectedError, "")
+
+		telegramController.composer = messageCompose
+		telegramController.userRepository = userRepository
+
+		defer gock.Off()
+		NewGock().Times(0).
+			Post("/sendMessage").JSON(expectedJson).
+			Reply(200).JSON(sendMessageSuccessResponse)
+
+		err := telegramController.WelcomeAuthorizedAction(event)
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedError, err)
 		assert.True(t, gock.IsDone())
 	})
 

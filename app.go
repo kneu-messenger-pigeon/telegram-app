@@ -44,18 +44,7 @@ func runApp(out io.Writer) error {
 	}
 
 	serviceContainer := framework.NewServiceContainer(config.BaseConfig, out)
-
-	telegramController := &TelegramController{
-		out:               out,
-		debugLogger:       serviceContainer.DebugLogger,
-		bot:               bot,
-		composer:          framework.NewMessageComposer(framework.MessageComposerConfig{}),
-		userRepository:    serviceContainer.UserRepository,
-		userLogoutHandler: serviceContainer.UserLogoutHandler,
-		authorizerClient:  serviceContainer.AuthorizerClient,
-		scoreClient:       serviceContainer.ScoreClient,
-	}
-
+	telegramController := NewTelegramController(serviceContainer, bot, out)
 	serviceContainer.SetController(telegramController)
 
 	serviceContainer.Executor.Execute()

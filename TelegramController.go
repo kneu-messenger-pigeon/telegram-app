@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kneu-messenger-pigeon/authorizer-client"
 	framework "github.com/kneu-messenger-pigeon/client-framework"
+	"github.com/kneu-messenger-pigeon/client-framework/delayedDeleter/contracts"
 	"github.com/kneu-messenger-pigeon/client-framework/models"
 	"github.com/kneu-messenger-pigeon/events"
 	scoreApi "github.com/kneu-messenger-pigeon/score-api"
@@ -26,14 +27,15 @@ const resetCommand = "/reset"
 const TelegramControllerStartedMessage = "Telegram controller started\n"
 
 type TelegramController struct {
-	out               io.Writer
-	debugLogger       *framework.DebugLogger
-	bot               *telebot.Bot
-	composer          framework.MessageComposerInterface
-	userRepository    framework.UserRepositoryInterface
-	userLogoutHandler framework.UserLogoutHandlerInterface
-	authorizerClient  authorizer.ClientInterface
-	scoreClient       score.ClientInterface
+	out                            io.Writer
+	debugLogger                    *framework.DebugLogger
+	bot                            *telebot.Bot
+	composer                       framework.MessageComposerInterface
+	userRepository                 framework.UserRepositoryInterface
+	userLogoutHandler              framework.UserLogoutHandlerInterface
+	authorizerClient               authorizer.ClientInterface
+	scoreClient                    score.ClientInterface
+	welcomeAnonymousDelayedDeleter contracts.DeleterInterface
 
 	authRedirectUrl string
 
@@ -43,6 +45,20 @@ type TelegramController struct {
 		disciplineScoreReplyMarkup *telebot.ReplyMarkup
 		authorizedUserReplyMarkup  *telebot.ReplyMarkup
 		logoutUserReplyMarkup      *telebot.ReplyMarkup
+	}
+}
+
+func NewTelegramController(serviceContainer *framework.ServiceContainer, bot *tele.Bot, out io.Writer) *TelegramController {
+	return &TelegramController{
+		out:                            out,
+		debugLogger:                    serviceContainer.DebugLogger,
+		bot:                            bot,
+		composer:                       framework.NewMessageComposer(framework.MessageComposerConfig{}),
+		userRepository:                 serviceContainer.UserRepository,
+		userLogoutHandler:              serviceContainer.UserLogoutHandler,
+		authorizerClient:               serviceContainer.AuthorizerClient,
+		scoreClient:                    serviceContainer.ScoreClient,
+		welcomeAnonymousDelayedDeleter: serviceContainer.WelcomeAnonymousDelayedDeleter,
 	}
 }
 
@@ -124,16 +140,33 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 		return err
 	}
 
-	err, message := controller.composer.ComposeWelcomeAnonymousMessage(
+	err, messageText := controller.composer.ComposeWelcomeAnonymousMessage(
 		models.WelcomeAnonymousMessageData{
 			AuthUrl:  authUrl,
 			ExpireAt: expireAt,
 		},
 	)
-	if err == nil {
-		err = c.Send(message, tele.Protected, controller.markups.logoutUserReplyMarkup)
+	if err != nil {
+		return err
 	}
+
+	var message *tele.Message
+	message, err = controller.bot.Send(c.Recipient(), messageText, tele.Protected, controller.markups.logoutUserReplyMarkup)
+
+	controller.welcomeAnonymousDelayedDeleter.AddToQueue(&contracts.DeleteTask{
+		ScheduledAt: expireAt.Unix(),
+		MessageId:   int32(message.ID),
+		ChatId:      c.Chat().ID,
+	})
+
 	return err
+}
+
+func (controller *TelegramController) HandleDeleteTask(task *contracts.DeleteTask) error {
+	return controller.bot.Delete(tele.StoredMessage{
+		MessageID: strconv.Itoa(int(task.GetMessageId())),
+		ChatID:    task.GetChatId(),
+	})
 }
 
 func (controller *TelegramController) WelcomeAuthorizedAction(event *events.UserAuthorizedEvent) error {
