@@ -193,7 +193,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		telegramController := CreateTelegramController(t)
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(nil).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
@@ -241,7 +241,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		telegramController := CreateTelegramController(t)
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(nil).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
@@ -288,7 +288,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		telegramController := CreateTelegramController(t)
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(nil).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
@@ -313,7 +313,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		expectedError := errors.New("expected error")
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(nil).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return("", time.Time{}, expectedError)
