@@ -230,6 +230,52 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		assert.True(t, gock.IsDone())
 	})
 
+	t.Run("telegramErr", func(t *testing.T) {
+		testAuthUrl := "http://auth.kneu.test/oauth"
+		expireAt := time.Date(2024, 3, 24, 16, 25, 0, 0, time.Local)
+		messageData := models.WelcomeAnonymousMessageData{
+			AuthUrl:  testAuthUrl,
+			ExpireAt: expireAt,
+		}
+
+		telegramController := CreateTelegramController(t)
+
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+
+		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
+		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
+
+		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
+		messageCompose.On("ComposeWelcomeAnonymousMessage", messageData).Return(nil, testMessageText)
+
+		sendMessageRequest := map[string]interface{}{
+			"chat_id":         testTelegramUserIdString,
+			"parse_mode":      "Markdown",
+			"reply_markup":    toJson(telegramController.markups.logoutUserReplyMarkup),
+			"protect_content": "true",
+			"text":            testMessageText,
+		}
+
+		errorText := "example-test-error"
+
+		defer gock.Off()
+		NewGock().Times(1).Post("/sendMessage").JSON(sendMessageRequest).
+			Reply(400).JSON(map[string]interface{}{
+			"ok":          false,
+			"error_code":  400,
+			"description": errorText,
+		})
+
+		message := getTestSampleMessage()
+		message.Text = startCommand
+
+		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
+
+		assert.Error(t, GetEndClearLastTelegramError())
+		assert.True(t, gock.IsDone())
+	})
+
 	t.Run("ComposeWelcomeAnonymousMessageError", func(t *testing.T) {
 		testAuthUrl := "http://auth.kneu.test/oauth"
 		expireAt := time.Date(2024, 3, 24, 16, 25, 0, 0, time.Local)
