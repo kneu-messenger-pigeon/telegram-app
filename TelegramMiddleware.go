@@ -26,7 +26,7 @@ func authMiddleware(userRepository framework.UserRepositoryInterface) tele.Middl
 func onlyAuthorizedMiddleware(anonymousHandler tele.HandlerFunc) tele.MiddlewareFunc {
 	return func(next tele.HandlerFunc) tele.HandlerFunc {
 		return func(c tele.Context) error {
-			if getStudent(c).Id != 0 {
+			if getStudent(c) != nil {
 				return next(c)
 			}
 
