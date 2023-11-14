@@ -1,11 +1,21 @@
 package main
 
 import (
+	"github.com/kneu-messenger-pigeon/client-framework/models"
 	tele "gopkg.in/telebot.v3"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+func getStudent(c tele.Context) *models.Student {
+	student := c.Get(contextStudentKey)
+	if student == nil {
+		return nil
+	}
+
+	return student.(*models.Student)
+}
 
 func makeChatId(chatId string) tele.ChatID {
 	chatIdInt, _ := strconv.ParseInt(chatId, 10, 0)
