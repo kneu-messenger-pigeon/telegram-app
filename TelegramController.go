@@ -163,7 +163,7 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 		ChatId:      c.Chat().ID,
 	})
 
-	return err
+	return nil
 }
 
 func (controller *TelegramController) HandleDeleteTask(task *contracts.DeleteTask) error {

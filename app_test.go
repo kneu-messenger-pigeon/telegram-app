@@ -42,7 +42,7 @@ func TestRunApp(t *testing.T) {
 		err := runApp(&out)
 		running = false
 
-		for i := 0; i < framework.ScoreChangedEventProcessorCount+5; i++ {
+		for i := 0; i < framework.ScoreChangedEventProcessorCount+6; i++ {
 			runtime.Gosched()
 		}
 
