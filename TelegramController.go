@@ -153,13 +153,17 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 	var message *tele.Message
 	message, err = controller.bot.Send(c.Recipient(), messageText, tele.Protected, controller.markups.logoutUserReplyMarkup)
 
+	if err != nil {
+		return err
+	}
+
 	controller.welcomeAnonymousDelayedDeleter.AddToQueue(&contracts.DeleteTask{
 		ScheduledAt: expireAt.Unix(),
 		MessageId:   int32(message.ID),
 		ChatId:      c.Chat().ID,
 	})
 
-	return err
+	return nil
 }
 
 func (controller *TelegramController) HandleDeleteTask(task *contracts.DeleteTask) error {
