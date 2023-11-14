@@ -6,7 +6,7 @@ require (
 	github.com/VictoriaMetrics/metrics v1.24.0
 	github.com/h2non/gock v1.2.0
 	github.com/kneu-messenger-pigeon/authorizer-client v0.1.6
-	github.com/kneu-messenger-pigeon/client-framework v0.1.43
+	github.com/kneu-messenger-pigeon/client-framework v0.1.42
 	github.com/kneu-messenger-pigeon/events v0.1.41
 	github.com/kneu-messenger-pigeon/score-api v0.1.11
 	github.com/kneu-messenger-pigeon/score-client v0.1.11

@@ -193,7 +193,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		telegramController := CreateTelegramController(t)
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(nil).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
@@ -212,6 +212,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		sendMessageRequest := map[string]interface{}{
 			"chat_id":         testTelegramUserIdString,
 			"parse_mode":      "Markdown",
+			"reply_markup":    toJson(telegramController.markups.logoutUserReplyMarkup),
 			"protect_content": "true",
 			"text":            testMessageText,
 		}
@@ -241,7 +242,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		telegramController := CreateTelegramController(t)
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(nil).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return(testAuthUrl, expireAt, nil)
@@ -266,7 +267,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		expectedError := errors.New("expected error")
 
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(nil).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		authorizerClient := telegramController.authorizerClient.(*authorizerMocks.ClientInterface)
 		authorizerClient.On("GetAuthUrl", testTelegramUserIdString, "https://t.me/?start").Return("", time.Time{}, expectedError)
@@ -290,11 +291,7 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 }
 
 func TestTelegramController_HandleDeleteTask(t *testing.T) {
-	student := models.Student{
-		Id: 1234,
-	}
-
-	executeHandleDeleteMessage := func(student *models.Student, deleteMessageSuccessResponse map[string]interface{}) error {
+	executeHandleDeleteMessage := func(deleteMessageSuccessResponse map[string]interface{}) error {
 		expectedTask := &contracts.DeleteTask{
 			ScheduledAt: time.Now().Unix(),
 			MessageId:   123456,
@@ -303,62 +300,24 @@ func TestTelegramController_HandleDeleteTask(t *testing.T) {
 
 		telegramController := CreateTelegramController(t)
 
-		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
-		userRepository.On("GetStudent", "98789").Return(student).Once()
-
 		expectedDeleteMessageJson := map[string]interface{}{
-			"chat_id":    strconv.FormatInt(expectedTask.ChatId, 10),
+			"chat_id":    strconv.Itoa(int(expectedTask.ChatId)),
 			"message_id": strconv.Itoa(int(expectedTask.MessageId)),
-		}
-
-		expectedEditReplyMarkupJson := map[string]interface{}{}
-		for k, v := range expectedDeleteMessageJson {
-			expectedEditReplyMarkupJson[k] = v
-		}
-		expectedEditReplyMarkupJson["reply_markup"] = toJson(telegramController.markups.logoutUserReplyMarkup)
-
-		expectedEditReplyCount := 0
-		if student == nil {
-			expectedEditReplyCount = 1
 		}
 
 		defer gock.Off()
 		NewGock().Times(1).Post("/deleteMessage").JSON(expectedDeleteMessageJson).
 			Reply(200).JSON(deleteMessageSuccessResponse)
 
-		NewGock().
-			Post("/editMessageReplyMarkup").JSON(expectedEditReplyMarkupJson).Times(expectedEditReplyCount).
-			Reply(200).
-			JSON(map[string]interface{}{
-				"ok":     true,
-				"result": true,
-			})
-		err := telegramController.HandleDeleteTask(expectedTask)
-		assert.True(t, gock.IsDone())
-		pending := gock.Pending()
-		if len(pending) != 0 {
-			for _, pendingMock := range pending {
-				t.Errorf("Pending mock: %#v\n", pendingMock.Request().URLStruct.RequestURI())
-			}
-		}
-		return err
+		return telegramController.HandleDeleteTask(expectedTask)
 	}
 
-	t.Run("success-anonymous", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
 		deleteMessageSuccessResponse := map[string]interface{}{
 			"ok":     true,
 			"result": true,
 		}
-		err := executeHandleDeleteMessage(nil, deleteMessageSuccessResponse)
-		assert.NoError(t, err)
-	})
-
-	t.Run("success-loginIn", func(t *testing.T) {
-		deleteMessageSuccessResponse := map[string]interface{}{
-			"ok":     true,
-			"result": true,
-		}
-		err := executeHandleDeleteMessage(&student, deleteMessageSuccessResponse)
+		err := executeHandleDeleteMessage(deleteMessageSuccessResponse)
 		assert.NoError(t, err)
 	})
 
@@ -368,8 +327,9 @@ func TestTelegramController_HandleDeleteTask(t *testing.T) {
 			"error_code":  400,
 			"description": "errorText",
 		}
-		err := executeHandleDeleteMessage(&student, deleteMessageSuccessResponse)
+		err := executeHandleDeleteMessage(deleteMessageSuccessResponse)
 		assert.Error(t, err)
+
 	})
 }
 
@@ -400,13 +360,9 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 		Gender:       0,
 	}
 
-	student := models.Student{
-		Id: 1234,
-	}
-
 	t.Run("success", func(t *testing.T) {
 		userRepository := mocks.NewUserRepositoryInterface(t)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(&student).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
 		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(nil, testMessageText)
@@ -427,7 +383,7 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 
 	t.Run("composeMessageError", func(t *testing.T) {
 		userRepository := mocks.NewUserRepositoryInterface(t)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(&student).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		expectedError := errors.New("expected error")
 
@@ -451,7 +407,7 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 
 	t.Run("telegramError", func(t *testing.T) {
 		userRepository := mocks.NewUserRepositoryInterface(t)
-		userRepository.On("GetStudent", testTelegramUserIdString).Return(&student).Once()
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
 
 		messageCompose := mocks.NewMessageComposerInterface(t)
 		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(nil, testMessageText)
