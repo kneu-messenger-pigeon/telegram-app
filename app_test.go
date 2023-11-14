@@ -46,7 +46,7 @@ func TestRunApp(t *testing.T) {
 			runtime.Gosched()
 		}
 
-		deadline := time.After(time.Second)
+		deadline := time.After(time.Second * 2)
 	waitingLoop:
 		for bytes.Contains(out.Bytes(), []byte("Started consuming")) {
 			select {

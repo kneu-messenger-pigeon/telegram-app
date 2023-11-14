@@ -15,6 +15,7 @@ import (
 	tele "gopkg.in/telebot.v3"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -269,6 +270,10 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 		if err == nil {
 			err = c.Send(message, controller.markups.disciplineScoreReplyMarkup)
 		}
+	}
+
+	if err != nil && strings.Contains(err.Error(), "Bad Request: can't parse entities") {
+		_, _ = fmt.Fprintf(controller.out, "DisciplineScoresAction failed to send message: %v; text: %s\n", err, message)
 	}
 
 	return err

@@ -788,7 +788,75 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		assert.True(t, gock.IsDone())
 	})
 
-	t.Run("error", func(t *testing.T) {
+	t.Run("failedToParseEntityError", func(t *testing.T) {
+		telegramController := CreateTelegramController(t)
+
+		out := &bytes.Buffer{}
+		telegramController.out = out
+
+		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
+
+		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
+		scoreClient.On("GetStudentDiscipline", sampleStudent.Id, disciplineId).Return(discipline, nil)
+
+		messageData := models.DisciplinesScoresMessageData{
+			StudentMessageData: models.NewStudentMessageData(sampleStudent),
+			Discipline:         discipline,
+		}
+		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
+		messageCompose.On("ComposeDisciplineScoresMessage", messageData).Return(nil, testMessageText)
+
+		replyMarkup := &tele.ReplyMarkup{
+			OneTimeKeyboard: true,
+			InlineKeyboard: [][]tele.InlineButton{
+				{
+					*telegramController.markups.listButton,
+				},
+			},
+		}
+		ProcessReplyMarkup(replyMarkup)
+
+		expectedJson := map[string]interface{}{
+			"chat_id":      testTelegramUserIdString,
+			"parse_mode":   "Markdown",
+			"reply_markup": toJson(replyMarkup),
+			"text":         testMessageText,
+		}
+
+		errorText := "Bad Request: can't parse entities: Can't find end of Underline entity at byte offset 143"
+
+		defer gock.Off()
+		NewGock().Times(1).Post("/sendMessage").JSON(expectedJson).
+			Reply(400).
+			JSON(map[string]interface{}{
+				"ok":          false,
+				"error_code":  400,
+				"description": errorText,
+			})
+
+		cbData := fmt.Sprintf(`%s|%d`, telegramController.markups.disciplineButton.CallbackUnique(), disciplineId)
+
+		message := getTestSampleMessage()
+		message.Text = ""
+
+		telegramController.bot.ProcessUpdate(tele.Update{
+			Message: &message,
+			Callback: &tele.Callback{
+				Data:   cbData,
+				Sender: message.Sender,
+			},
+		})
+
+		assert.True(t, gock.IsDone())
+		assert.Error(t, GetEndClearLastTelegramError())
+
+		outString := out.String()
+		expectedOut := "DisciplineScoresAction failed to send message: telegram: " + errorText + " (400); text: test-message ! 0101\n"
+		assert.Equal(t, expectedOut, outString)
+	})
+
+	t.Run("messageNotModifiedError", func(t *testing.T) {
 		telegramController := CreateTelegramController(t)
 		expectedError := errors.New("expected error")
 
