@@ -9,12 +9,7 @@ import (
 )
 
 func getStudent(c tele.Context) *models.Student {
-	student := c.Get(contextStudentKey)
-	if student == nil {
-		return nil
-	}
-
-	return student.(*models.Student)
+	return c.Get(contextStudentKey).(*models.Student)
 }
 
 func makeChatId(chatId string) tele.ChatID {

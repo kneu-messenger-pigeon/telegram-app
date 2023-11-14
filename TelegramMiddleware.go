@@ -11,10 +11,12 @@ const contextStudentKey = "student"
 func authMiddleware(userRepository framework.UserRepositoryInterface) tele.MiddlewareFunc {
 	return func(next tele.HandlerFunc) tele.HandlerFunc {
 		return func(c tele.Context) error {
-			student := userRepository.GetStudent(strconv.FormatInt(c.Sender().ID, 10))
-			if student != nil {
-				c.Set(contextStudentKey, student)
-			}
+			c.Set(
+				contextStudentKey,
+				userRepository.GetStudent(
+					strconv.FormatInt(c.Sender().ID, 10),
+				),
+			)
 
 			return next(c)
 		}
@@ -27,6 +29,7 @@ func onlyAuthorizedMiddleware(anonymousHandler tele.HandlerFunc) tele.Middleware
 			if getStudent(c) != nil {
 				return next(c)
 			}
+
 			return anonymousHandler(c)
 		}
 	}
