@@ -151,7 +151,7 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 	}
 
 	var message *tele.Message
-	message, err = controller.bot.Send(c.Recipient(), messageText, tele.Protected)
+	message, err = controller.bot.Send(c.Recipient(), messageText, tele.Protected, controller.markups.logoutUserReplyMarkup)
 
 	controller.welcomeAnonymousDelayedDeleter.AddToQueue(&contracts.DeleteTask{
 		ScheduledAt: expireAt.Unix(),
@@ -163,19 +163,10 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 }
 
 func (controller *TelegramController) HandleDeleteTask(task *contracts.DeleteTask) error {
-	chatId := strconv.FormatInt(task.GetChatId(), 10)
-
-	storedMessage := tele.StoredMessage{
+	return controller.bot.Delete(tele.StoredMessage{
 		MessageID: strconv.Itoa(int(task.GetMessageId())),
 		ChatID:    task.GetChatId(),
-	}
-
-	student := controller.userRepository.GetStudent(chatId)
-	if student == nil {
-		_, _ = controller.bot.EditReplyMarkup(storedMessage, controller.markups.logoutUserReplyMarkup)
-	}
-
-	return controller.bot.Delete(storedMessage)
+	})
 }
 
 func (controller *TelegramController) WelcomeAuthorizedAction(event *events.UserAuthorizedEvent) error {
