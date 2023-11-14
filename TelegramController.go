@@ -311,7 +311,7 @@ func (controller *TelegramController) ScoreChangedAction(
 		} else if previousMessageId == "" {
 			message, err = controller.bot.Send(tele.ChatID(chatIdInt64), messageText, replyMarkup)
 			controller.debugLogger.Log(
-				"ScoreChangedAction: send new message to %s; err: %v; message: %v",
+				"ScoreChangedAction: send new message to %s; err: %v; message: %#v",
 				chatId, err, message,
 			)
 
@@ -322,7 +322,7 @@ func (controller *TelegramController) ScoreChangedAction(
 			}, messageText, replyMarkup)
 
 			controller.debugLogger.Log(
-				"ScoreChangedAction: edit message with id %s, chatId %s; err: %v; message: %v",
+				"ScoreChangedAction: edit message with id %s, chatId %s; err: %v; message: %#v",
 				previousMessageId, chatId, err, message,
 			)
 
