@@ -38,7 +38,7 @@ func onlyAuthorizedMiddleware(anonymousHandler tele.HandlerFunc) tele.Middleware
 func onlyPrivateChatMiddleware() tele.MiddlewareFunc {
 	return func(next tele.HandlerFunc) tele.HandlerFunc {
 		return func(c tele.Context) error {
-			if c.Chat().Type == tele.ChatPrivate {
+			if c.Chat() != nil && c.Chat().Type == tele.ChatPrivate {
 				return next(c)
 			}
 
