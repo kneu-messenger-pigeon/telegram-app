@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	tele "gopkg.in/telebot.v3"
 	"regexp"
 	"strconv"
@@ -34,4 +35,15 @@ func escapeMarkDown(markdownStr string) string {
 	markdownStr = unEscapeMarkDownLinks.ReplaceAllString(markdownStr, unEscapeMarkDownLinksSubstitution)
 
 	return markdownStr
+}
+
+func isBlockedByUserErr(err error) bool {
+	var botError *tele.Error
+	_ = errors.As(err, &botError)
+	switch botError {
+	case tele.ErrChatNotFound, tele.ErrBlockedByUser, tele.ErrUserIsDeactivated:
+		// rewrite error to result of userLogoutHandler.Handle
+		return true
+	}
+	return false
 }

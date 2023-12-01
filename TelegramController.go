@@ -202,8 +202,8 @@ func (controller *TelegramController) LogoutFinishedAction(event *events.UserAut
 	if err == nil {
 		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.logoutUserReplyMarkup)
 
-		if err != nil {
-			_, _ = fmt.Fprintf(controller.out, "WelcomeAuthorizedAction failed to send message: %v; text: %s\n", err, message)
+		if err != nil && !isBlockedByUserErr(err) {
+			_, _ = fmt.Fprintf(controller.out, "LogoutFinishedAction failed to send message: %v; text: %s\n", err, message)
 		}
 
 	}
@@ -352,10 +352,7 @@ func (controller *TelegramController) ScoreChangedAction(
 }
 
 func (controller *TelegramController) handleTelegramError(err error, chatId int64) error {
-	botError, _ := err.(*telebot.Error)
-	switch botError {
-	case tele.ErrChatNotFound, tele.ErrBlockedByUser, tele.ErrUserIsDeactivated:
-		fmt.Printf("Got error %v - do user logout to unregister chat\n", botError)
+	if isBlockedByUserErr(err) {
 		// rewrite error to result of userLogoutHandler.Handle
 		return controller.userLogoutHandler.Handle(strconv.FormatInt(chatId, 10))
 	}
