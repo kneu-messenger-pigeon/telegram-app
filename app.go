@@ -71,9 +71,9 @@ func TelegramOnError(err error, c tele.Context) {
 		}
 
 		log.Println(studentId, c.Update().ID, err)
-		onUpdateErrorCount.Inc()
+		OnUpdateErrorCount.Inc()
 	} else {
 		log.Println(err)
-		onErrorCount.Inc()
+		OnErrorCount.Inc()
 	}
 }

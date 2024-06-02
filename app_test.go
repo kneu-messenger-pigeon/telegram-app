@@ -142,7 +142,7 @@ func TestTelegramOnError(t *testing.T) {
 	t.Run("noContext", func(t *testing.T) {
 		TelegramOnError(errors.New("dummy error"), nil)
 
-		assert.Equal(t, uint64(1), onErrorCount.Get())
+		assert.Equal(t, uint64(1), OnErrorCount.Get())
 	})
 
 	t.Run("Context", func(t *testing.T) {
@@ -157,6 +157,6 @@ func TestTelegramOnError(t *testing.T) {
 
 		TelegramOnError(errors.New("dummy error"), ctx)
 
-		assert.Equal(t, uint64(1), onUpdateErrorCount.Get())
+		assert.Equal(t, uint64(1), OnUpdateErrorCount.Get())
 	})
 }

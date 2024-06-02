@@ -11,12 +11,13 @@ import (
 	"github.com/kneu-messenger-pigeon/events"
 	scoreApi "github.com/kneu-messenger-pigeon/score-api"
 	"github.com/kneu-messenger-pigeon/score-client"
-	"gopkg.in/telebot.v3"
+	"golang.org/x/time/rate"
 	tele "gopkg.in/telebot.v3"
 	"io"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const startCommand = "/start"
@@ -27,10 +28,12 @@ const resetCommand = "/reset"
 
 const TelegramControllerStartedMessage = "Telegram controller started\n"
 
+const sendRetryCount = 5
+
 type TelegramController struct {
 	out                            io.Writer
 	debugLogger                    *framework.DebugLogger
-	bot                            *telebot.Bot
+	bot                            *tele.Bot
 	composer                       framework.MessageComposerInterface
 	userRepository                 framework.UserRepositoryInterface
 	userLogoutHandler              framework.UserLogoutHandlerInterface
@@ -38,14 +41,15 @@ type TelegramController struct {
 	scoreClient                    score.ClientInterface
 	welcomeAnonymousDelayedDeleter contracts.DeleterInterface
 
+	rateLimiter     *rate.Limiter
 	authRedirectUrl string
 
 	markups struct {
-		disciplineButton           *telebot.InlineButton
-		listButton                 *telebot.InlineButton
-		disciplineScoreReplyMarkup *telebot.ReplyMarkup
-		authorizedUserReplyMarkup  *telebot.ReplyMarkup
-		logoutUserReplyMarkup      *telebot.ReplyMarkup
+		disciplineButton           *tele.InlineButton
+		listButton                 *tele.InlineButton
+		disciplineScoreReplyMarkup *tele.ReplyMarkup
+		authorizedUserReplyMarkup  *tele.ReplyMarkup
+		logoutUserReplyMarkup      *tele.ReplyMarkup
 	}
 }
 
@@ -60,6 +64,7 @@ func NewTelegramController(serviceContainer *framework.ServiceContainer, bot *te
 		authorizerClient:               serviceContainer.AuthorizerClient,
 		scoreClient:                    serviceContainer.ScoreClient,
 		welcomeAnonymousDelayedDeleter: serviceContainer.WelcomeAnonymousDelayedDeleter,
+		rateLimiter:                    rate.NewLimiter(rate.Every(time.Second), 30),
 	}
 }
 
@@ -67,10 +72,10 @@ func (controller *TelegramController) Init() {
 	controller.composer.SetPostFilter(escapeMarkDown)
 	controller.authRedirectUrl = fmt.Sprintf("https://t.me/%s?start", controller.bot.Me.Username)
 
-	controller.markups.disciplineButton = &telebot.InlineButton{
+	controller.markups.disciplineButton = &tele.InlineButton{
 		Unique: "discipline",
 	}
-	controller.markups.listButton = &telebot.InlineButton{
+	controller.markups.listButton = &tele.InlineButton{
 		Text:   "Назад",
 		Unique: "list",
 	}
@@ -82,7 +87,7 @@ func (controller *TelegramController) Init() {
 		},
 	}
 
-	controller.markups.authorizedUserReplyMarkup = &telebot.ReplyMarkup{
+	controller.markups.authorizedUserReplyMarkup = &tele.ReplyMarkup{
 		ResizeKeyboard: true,
 		ReplyKeyboard: [][]tele.ReplyButton{
 			{
@@ -91,7 +96,7 @@ func (controller *TelegramController) Init() {
 		},
 	}
 
-	controller.markups.logoutUserReplyMarkup = &telebot.ReplyMarkup{
+	controller.markups.logoutUserReplyMarkup = &tele.ReplyMarkup{
 		ResizeKeyboard: true,
 		ReplyKeyboard: [][]tele.ReplyButton{
 			{
@@ -152,7 +157,7 @@ func (controller *TelegramController) WelcomeAnonymousAction(c tele.Context) err
 	}
 
 	var message *tele.Message
-	message, err = controller.bot.Send(c.Recipient(), messageText, tele.Protected, controller.markups.logoutUserReplyMarkup)
+	message, err = controller.send(c.Recipient(), messageText, tele.Protected, controller.markups.logoutUserReplyMarkup)
 
 	if err != nil {
 		return err
@@ -183,7 +188,7 @@ func (controller *TelegramController) WelcomeAuthorizedAction(event *events.User
 		},
 	)
 	if err == nil {
-		_, err = controller.bot.Send(
+		_, err = controller.send(
 			makeChatId(event.ClientUserId),
 			message,
 			controller.markups.authorizedUserReplyMarkup,
@@ -200,7 +205,7 @@ func (controller *TelegramController) WelcomeAuthorizedAction(event *events.User
 func (controller *TelegramController) LogoutFinishedAction(event *events.UserAuthorizedEvent) error {
 	err, message := controller.composer.ComposeLogoutFinishedMessage()
 	if err == nil {
-		_, err = controller.bot.Send(makeChatId(event.ClientUserId), message, controller.markups.logoutUserReplyMarkup)
+		_, err = controller.send(makeChatId(event.ClientUserId), message, controller.markups.logoutUserReplyMarkup)
 
 		if err != nil && !isBlockedByUserErr(err) {
 			_, _ = fmt.Fprintf(controller.out, "LogoutFinishedAction failed to send message: %v; text: %s\n", err, message)
@@ -241,7 +246,7 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 			},
 		)
 		if err == nil {
-			err = c.Send(message, replyMarkup)
+			_, err = controller.send(c.Recipient(), message, replyMarkup)
 		}
 	}
 
@@ -268,7 +273,7 @@ func (controller *TelegramController) DisciplineScoresAction(c tele.Context) err
 		)
 
 		if err == nil {
-			err = c.Send(message, controller.markups.disciplineScoreReplyMarkup)
+			_, err = controller.send(c.Recipient(), message, controller.markups.disciplineScoreReplyMarkup)
 		}
 	}
 
@@ -318,7 +323,7 @@ func (controller *TelegramController) ScoreChangedAction(
 			}
 
 		} else if previousMessageId == "" {
-			message, err = controller.bot.Send(tele.ChatID(chatIdInt64), messageText, replyMarkup)
+			message, err = controller.send(tele.ChatID(chatIdInt64), messageText, replyMarkup)
 			controller.debugLogger.Log(
 				"ScoreChangedAction: send new message to %s; err: %v; message: %#v",
 				chatId, err, message,
@@ -349,6 +354,28 @@ func (controller *TelegramController) ScoreChangedAction(
 	}
 
 	return err, ""
+}
+
+func (controller *TelegramController) send(to tele.Recipient, what interface{}, opts ...interface{}) (message *tele.Message, err error) {
+	floodError := &tele.FloodError{}
+
+	for i := 0; i < sendRetryCount; i++ {
+		err = controller.rateLimiter.Wait(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		message, err = controller.bot.Send(to, what, opts...)
+		if errors.As(err, floodError) {
+			TooManyRequestsCount.Inc()
+			time.Sleep(time.Second * time.Duration(floodError.RetryAfter))
+			continue
+		}
+
+		return message, err
+	}
+
+	return nil, err
 }
 
 func (controller *TelegramController) handleTelegramError(err error, chatId int64) error {

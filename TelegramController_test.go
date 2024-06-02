@@ -16,9 +16,11 @@ import (
 	"github.com/kneu-messenger-pigeon/score-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"golang.org/x/time/rate"
 	tele "gopkg.in/telebot.v3"
 	"io"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -102,6 +104,7 @@ func CreateTelegramController(t *testing.T) (telegramController *TelegramControl
 		authorizerClient:               authorizerMocks.NewClientInterface(t),
 		scoreClient:                    score.NewMockClientInterface(t),
 		welcomeAnonymousDelayedDeleter: mocks.NewDeleterInterface(t),
+		rateLimiter:                    rate.NewLimiter(rate.Every(time.Second), 30),
 	}
 	telegramController.Init()
 
@@ -271,6 +274,8 @@ func TestTelegramController_WelcomeAnonymousAction(t *testing.T) {
 		message.Text = startCommand
 
 		telegramController.bot.ProcessUpdate(tele.Update{Message: &message})
+
+		runtime.Gosched()
 
 		assert.Error(t, GetEndClearLastTelegramError())
 		assert.True(t, gock.IsDone())
@@ -477,6 +482,105 @@ func TestTelegramController_WelcomeAuthorizedAction(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, out.String(), errorText)
 		assert.Contains(t, out.String(), testMessageText)
+		assert.True(t, gock.IsDone())
+	})
+
+	t.Run("rateLimiterExceeds", func(t *testing.T) {
+		originalRateLimiter := telegramController.rateLimiter
+		telegramController.rateLimiter = rate.NewLimiter(rate.Every(time.Minute), 0)
+		defer func() {
+			telegramController.rateLimiter = originalRateLimiter
+		}()
+
+		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(nil, testMessageText)
+
+		telegramController.composer = messageCompose
+		telegramController.userRepository = userRepository
+
+		defer gock.Off()
+		NewGock().Times(0).
+			Post("/sendMessage").JSON(expectedJson).
+			Reply(200).JSON(sendMessageSuccessResponse)
+
+		err := telegramController.WelcomeAuthorizedAction(event)
+
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "rate: Wait(n=1) exceeds limiter's burst")
+		assert.True(t, gock.IsDone())
+	})
+
+	t.Run("TooManyRequestErrorAndSuccessRetry", func(t *testing.T) {
+		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(nil, testMessageText)
+
+		telegramController.composer = messageCompose
+		telegramController.userRepository = userRepository
+
+		defer gock.Off()
+		NewGock().Times(1).
+			Post("/sendMessage").JSON(expectedJson).
+			Reply(429).JSON(
+			map[string]interface{}{
+				"ok":          false,
+				"error_code":  429,
+				"description": "Too Many Requests: retry after 1",
+				"parameters": map[string]interface{}{
+					"retry_after": 1,
+				},
+			},
+		)
+
+		NewGock().Times(1).
+			Post("/sendMessage").JSON(expectedJson).
+			Reply(200).JSON(sendMessageSuccessResponse)
+
+		start := time.Now()
+		err := telegramController.WelcomeAuthorizedAction(event)
+		duration := time.Since(start)
+
+		assert.NoError(t, err)
+		assert.Greater(t, duration, time.Second)
+		assert.True(t, gock.IsDone())
+	})
+
+	t.Run("TooManyRequestErrorAndReachRetryLimit", func(t *testing.T) {
+		userRepository := mocks.NewUserRepositoryInterface(t)
+		userRepository.On("GetStudent", testTelegramUserIdString).Return(&models.Student{}).Once()
+
+		messageCompose := mocks.NewMessageComposerInterface(t)
+		messageCompose.On("ComposeWelcomeAuthorizedMessage", messageData).Return(nil, testMessageText)
+
+		telegramController.composer = messageCompose
+		telegramController.userRepository = userRepository
+
+		defer gock.Off()
+		NewGock().Times(sendRetryCount).
+			Post("/sendMessage").JSON(expectedJson).
+			Reply(429).JSON(
+			map[string]interface{}{
+				"ok":          false,
+				"error_code":  429,
+				"description": "Too Many Requests: retry after 1",
+				"parameters": map[string]interface{}{
+					"retry_after": 1,
+				},
+			},
+		)
+
+		start := time.Now()
+		err := telegramController.WelcomeAuthorizedAction(event)
+		duration := time.Since(start)
+
+		assert.Error(t, err)
+		assert.ErrorAs(t, err, &tele.FloodError{})
+		assert.Greater(t, duration, time.Duration(sendRetryCount)*time.Second)
 		assert.True(t, gock.IsDone())
 	})
 }
