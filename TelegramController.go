@@ -362,6 +362,7 @@ func (controller *TelegramController) send(to tele.Recipient, what interface{}, 
 	for i := 0; i < sendRetryCount; i++ {
 		err = controller.rateLimiter.Wait(context.Background())
 		if err != nil {
+			RateLimitErrorCount.Inc()
 			return nil, err
 		}
 
