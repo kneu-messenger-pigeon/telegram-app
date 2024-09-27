@@ -30,6 +30,8 @@ const TelegramControllerStartedMessage = "Telegram controller started\n"
 
 const sendRetryCount = 5
 
+const SupportInfo = "Підтримка та ідеї: @KneuJournalSupportBot"
+
 type TelegramController struct {
 	out                            io.Writer
 	debugLogger                    *framework.DebugLogger
@@ -243,6 +245,7 @@ func (controller *TelegramController) DisciplinesListAction(c tele.Context) erro
 			models.DisciplinesListMessageData{
 				StudentMessageData: models.NewStudentMessageData(student),
 				Disciplines:        disciplines,
+				SupportInfo:        SupportInfo,
 			},
 		)
 		if err == nil {

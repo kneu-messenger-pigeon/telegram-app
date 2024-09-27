@@ -737,6 +737,7 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 		messageData := models.DisciplinesListMessageData{
 			StudentMessageData: models.NewStudentMessageData(sampleStudent),
 			Disciplines:        disciplines,
+			SupportInfo:        SupportInfo,
 		}
 
 		replyMarkup := &tele.ReplyMarkup{
@@ -789,6 +790,7 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 		messageData := models.DisciplinesListMessageData{
 			StudentMessageData: models.NewStudentMessageData(sampleStudent),
 			Disciplines:        disciplines,
+			SupportInfo:        SupportInfo,
 		}
 
 		messageCompose := telegramController.composer.(*mocks.MessageComposerInterface)
