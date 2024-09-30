@@ -5,8 +5,8 @@ go 1.23
 require (
 	github.com/VictoriaMetrics/metrics v1.35.1
 	github.com/h2non/gock v1.2.0
-	github.com/kneu-messenger-pigeon/authorizer-client v0.1.6
-	github.com/kneu-messenger-pigeon/client-framework v0.1.48
+	github.com/kneu-messenger-pigeon/authorizer-client v0.1.7
+	github.com/kneu-messenger-pigeon/client-framework v0.1.49
 	github.com/kneu-messenger-pigeon/events v0.1.41
 	github.com/kneu-messenger-pigeon/score-api v0.1.11
 	github.com/kneu-messenger-pigeon/score-client v0.1.11
@@ -24,7 +24,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.10 // indirect
 	github.com/kneu-messenger-pigeon/authorizer v0.1.0 // indirect
-	github.com/kneu-messenger-pigeon/victoria-metrics-init v0.1.2 // indirect
+	github.com/kneu-messenger-pigeon/victoria-metrics-init v0.1.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/redis/go-redis/v9 v9.6.1 // indirect
