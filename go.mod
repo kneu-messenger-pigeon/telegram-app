@@ -9,7 +9,7 @@ require (
 	github.com/kneu-messenger-pigeon/client-framework v0.1.52
 	github.com/kneu-messenger-pigeon/events v0.1.42
 	github.com/kneu-messenger-pigeon/score-api v0.1.12
-	github.com/kneu-messenger-pigeon/score-client v0.1.13
+	github.com/kneu-messenger-pigeon/score-client v0.1.14
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/time v0.6.0
 	gopkg.in/telebot.v3 v3.3.8
