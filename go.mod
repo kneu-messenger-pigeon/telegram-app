@@ -6,10 +6,10 @@ require (
 	github.com/VictoriaMetrics/metrics v1.35.1
 	github.com/h2non/gock v1.2.0
 	github.com/kneu-messenger-pigeon/authorizer-client v0.1.7
-	github.com/kneu-messenger-pigeon/client-framework v0.1.49
+	github.com/kneu-messenger-pigeon/client-framework v0.1.50
 	github.com/kneu-messenger-pigeon/events v0.1.41
 	github.com/kneu-messenger-pigeon/score-api v0.1.11
-	github.com/kneu-messenger-pigeon/score-client v0.1.11
+	github.com/kneu-messenger-pigeon/score-client v0.1.12
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/time v0.6.0
 	gopkg.in/telebot.v3 v3.3.8
