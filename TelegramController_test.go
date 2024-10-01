@@ -13,7 +13,7 @@ import (
 	"github.com/kneu-messenger-pigeon/client-framework/models"
 	"github.com/kneu-messenger-pigeon/events"
 	scoreApi "github.com/kneu-messenger-pigeon/score-api"
-	"github.com/kneu-messenger-pigeon/score-client"
+	scoreMocks "github.com/kneu-messenger-pigeon/score-client/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/time/rate"
@@ -102,7 +102,7 @@ func CreateTelegramController(t *testing.T) (telegramController *TelegramControl
 		userRepository:                 mocks.NewUserRepositoryInterface(t),
 		userLogoutHandler:              mocks.NewUserLogoutHandlerInterface(t),
 		authorizerClient:               authorizerMocks.NewClientInterface(t),
-		scoreClient:                    score.NewMockClientInterface(t),
+		scoreClient:                    scoreMocks.NewClientInterface(t),
 		welcomeAnonymousDelayedDeleter: mocks.NewDeleterInterface(t),
 		rateLimiter:                    rate.NewLimiter(rate.Every(time.Second), 30),
 	}
@@ -731,7 +731,7 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
+		scoreClient := telegramController.scoreClient.(*scoreMocks.ClientInterface)
 		scoreClient.On("GetStudentDisciplines", sampleStudent.Id).Return(disciplines, nil)
 
 		messageData := models.DisciplinesListMessageData{
@@ -784,7 +784,7 @@ func TestTelegramController_DisciplinesListAction(t *testing.T) {
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
+		scoreClient := telegramController.scoreClient.(*scoreMocks.ClientInterface)
 		scoreClient.On("GetStudentDisciplines", sampleStudent.Id).Return(disciplines, nil)
 
 		messageData := models.DisciplinesListMessageData{
@@ -847,7 +847,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
+		scoreClient := telegramController.scoreClient.(*scoreMocks.ClientInterface)
 		scoreClient.On("GetStudentDiscipline", sampleStudent.Id, disciplineId).Return(discipline, nil)
 
 		messageData := models.DisciplinesScoresMessageData{
@@ -903,7 +903,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
+		scoreClient := telegramController.scoreClient.(*scoreMocks.ClientInterface)
 		scoreClient.On("GetStudentDiscipline", sampleStudent.Id, disciplineId).Return(discipline, nil)
 
 		messageData := models.DisciplinesScoresMessageData{
@@ -969,7 +969,7 @@ func TestTelegramController_DisciplineScoresAction(t *testing.T) {
 		userRepository := telegramController.userRepository.(*mocks.UserRepositoryInterface)
 		userRepository.On("GetStudent", testTelegramUserIdString).Return(sampleStudent).Once()
 
-		scoreClient := telegramController.scoreClient.(*score.MockClientInterface)
+		scoreClient := telegramController.scoreClient.(*scoreMocks.ClientInterface)
 		scoreClient.On("GetStudentDiscipline", sampleStudent.Id, disciplineId).Return(scoreApi.DisciplineScoreResult{}, expectedError)
 
 		out := &bytes.Buffer{}
